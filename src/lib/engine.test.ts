@@ -107,6 +107,7 @@ describe("conversation orchestration", () => {
     await e.start();
     expect(requests[0]).toContain("为什么需要消融");
     expect(requests[1]).not.toContain("为什么需要消融");
+    e.forward("q1", "为什么需要消融？");
     expect(e.state.session?.pendingQuestions).toHaveLength(0);
     e.stop();
   });

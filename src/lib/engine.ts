@@ -320,6 +320,7 @@ export class ResearchEngine {
             turn!.text = "";
             turn!.status = "streaming";
             turn!.citations = [];
+            turn!.forwarded = queued.map((q) => q.id);
           });
         } else {
           turn = {
@@ -555,6 +556,14 @@ export class ResearchEngine {
     }
   }
   forward(id: string, text: string) {
+    if (
+      this.state.session?.turns.some(
+        (t) => t.status === "complete" && t.forwarded?.includes(id),
+      )
+    ) {
+      this.emit({ notice: "这个问题已经交由主会场回应。" });
+      return;
+    }
     this.update((s) => {
       if (!s.pendingQuestions.some((q) => q.id === id))
         s.pendingQuestions.push({ id, text });

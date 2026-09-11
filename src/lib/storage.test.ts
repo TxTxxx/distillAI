@@ -16,6 +16,18 @@ describe("local persistence and reading integrity", () => {
   it("roundtrips session data through IndexedDB and JSON", async () => {
     const s = newSession("World Model", "research");
     s.notes = "我的笔记";
+    s.turns = [
+      {
+        id: "turn-1",
+        speaker: 0,
+        text: "test",
+        status: "complete",
+        createdAt: 0,
+        citations: [],
+        forwarded: ["q1"],
+      },
+    ];
+    s.playback = { turnId: "turn-1", segment: 0, seconds: 12 };
     s.sources = [
       {
         id: "source",
@@ -37,6 +49,8 @@ describe("local persistence and reading integrity", () => {
     expect(r.sources[0].pages).toEqual(s.sources[0].pages);
     expect(r.sources[0].blobId).toBeUndefined();
     expect(r.notes).toBe(s.notes);
+    expect(r.turns[0].forwarded).toEqual(["q1"]);
+    expect(r.playback).toEqual(s.playback);
   });
   it("rejects malformed backup instead of breaking the app", () => {
     expect(() => restore('{"app":"guanyan","version":1,"session":{}}')).toThrow(

@@ -31,25 +31,23 @@ describe("stream and provider contracts", () => {
     expect(out).toEqual(["中文", "[DONE]"]);
   });
   it("returns OpenAI deltas, native citations and usage", async () => {
-    const fetch = vi
-      .fn()
-      .mockResolvedValue(
-        response([
-          { type: "response.web_search_call.completed" },
-          { type: "response.output_text.delta", delta: "结果" },
-          {
-            type: "response.output_text.annotation.added",
-            annotation: {
-              url: "https://arxiv.org/abs/2301.04104",
-              title: "DreamerV3",
-            },
+    const fetch = vi.fn().mockResolvedValue(
+      response([
+        { type: "response.web_search_call.completed" },
+        { type: "response.output_text.delta", delta: "结果" },
+        {
+          type: "response.output_text.annotation.added",
+          annotation: {
+            url: "https://arxiv.org/abs/2301.04104",
+            title: "DreamerV3",
           },
-          {
-            type: "response.completed",
-            response: { usage: { input_tokens: 10, output_tokens: 3 } },
-          },
-        ]),
-      );
+        },
+        {
+          type: "response.completed",
+          response: { usage: { input_tokens: 10, output_tokens: 3 } },
+        },
+      ]),
+    );
     vi.stubGlobal("fetch", fetch);
     const deltas: string[] = [];
     const r = await generate(config, {
@@ -102,30 +100,28 @@ describe("stream and provider contracts", () => {
   it("reads Claude native citations and completion", async () => {
     vi.stubGlobal(
       "fetch",
-      vi
-        .fn()
-        .mockResolvedValue(
-          response([
-            { type: "message_start", message: { usage: { input_tokens: 15 } } },
-            {
-              type: "content_block_delta",
-              delta: { type: "text_delta", text: "审稿意见" },
+      vi.fn().mockResolvedValue(
+        response([
+          { type: "message_start", message: { usage: { input_tokens: 15 } } },
+          {
+            type: "content_block_delta",
+            delta: { type: "text_delta", text: "审稿意见" },
+          },
+          {
+            type: "content_block_delta",
+            delta: {
+              type: "citations_delta",
+              citation: { url: "https://example.org/paper", title: "论文" },
             },
-            {
-              type: "content_block_delta",
-              delta: {
-                type: "citations_delta",
-                citation: { url: "https://example.org/paper", title: "论文" },
-              },
-            },
-            {
-              type: "message_delta",
-              usage: { output_tokens: 8 },
-              delta: { stop_reason: "end_turn" },
-            },
-            { type: "message_stop" },
-          ]),
-        ),
+          },
+          {
+            type: "message_delta",
+            usage: { output_tokens: 8 },
+            delta: { stop_reason: "end_turn" },
+          },
+          { type: "message_stop" },
+        ]),
+      ),
     );
     const r = await generate(
       { ...config, provider: "claude" },
@@ -138,37 +134,32 @@ describe("stream and provider contracts", () => {
   it("reads Gemini grounding and ignores thought text", async () => {
     vi.stubGlobal(
       "fetch",
-      vi
-        .fn()
-        .mockResolvedValue(
-          response([
-            {
-              candidates: [
-                {
-                  content: {
-                    parts: [
-                      { text: "private", thought: true },
-                      { text: "正文" },
-                    ],
-                  },
-                  groundingMetadata: {
-                    webSearchQueries: ["paper"],
-                    groundingChunks: [
-                      {
-                        web: {
-                          uri: "https://example.org/paper",
-                          title: "论文",
-                        },
-                      },
-                    ],
-                  },
-                  finishReason: "STOP",
+      vi.fn().mockResolvedValue(
+        response([
+          {
+            candidates: [
+              {
+                content: {
+                  parts: [{ text: "private", thought: true }, { text: "正文" }],
                 },
-              ],
-              usageMetadata: { promptTokenCount: 10, candidatesTokenCount: 5 },
-            },
-          ]),
-        ),
+                groundingMetadata: {
+                  webSearchQueries: ["paper"],
+                  groundingChunks: [
+                    {
+                      web: {
+                        uri: "https://example.org/paper",
+                        title: "论文",
+                      },
+                    },
+                  ],
+                },
+                finishReason: "STOP",
+              },
+            ],
+            usageMetadata: { promptTokenCount: 10, candidatesTokenCount: 5 },
+          },
+        ]),
+      ),
     );
     const r = await generate(
       { ...config, provider: "gemini" },

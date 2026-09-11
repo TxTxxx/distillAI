@@ -146,6 +146,9 @@ export function restore(raw: string): Session {
       createdAt: t.createdAt,
       citations: t.citations.map((c) => ({ url: c.url, title: c.title })),
       usage: t.usage,
+      forwarded: Array.isArray(t.forwarded)
+        ? t.forwarded.filter((x) => typeof x === "string")
+        : [],
     })),
     tutor: s.tutor.map((m) => ({
       id: m.id,
@@ -181,6 +184,19 @@ export function restore(raw: string): Session {
     search: !!s.search,
     voice: !!s.voice,
     demo: !!s.demo,
+    playback:
+      s.playback &&
+      typeof s.playback.turnId === "string" &&
+      Number.isInteger(s.playback.segment) &&
+      s.playback.segment >= 0 &&
+      Number.isFinite(s.playback.seconds) &&
+      s.playback.seconds >= 0
+        ? {
+            turnId: s.playback.turnId,
+            segment: s.playback.segment,
+            seconds: s.playback.seconds,
+          }
+        : undefined,
   };
 }
 export function markdown(s: Session) {

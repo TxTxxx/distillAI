@@ -585,6 +585,11 @@ export default function Room({
                     <div className="tutor-message-actions">
                       {m.role === "user" ? (
                         <button
+                          disabled={s.turns.some(
+                            (t) =>
+                              t.status === "complete" &&
+                              t.forwarded?.includes(m.id),
+                          )}
                           onClick={() =>
                             engine.forward(
                               m.id,
@@ -593,9 +598,15 @@ export default function Room({
                           }
                         >
                           <Send size={12} />
-                          {s.pendingQuestions.some((q) => q.id === m.id)
-                            ? "等待主会场回应"
-                            : "交给主会场"}
+                          {s.turns.some(
+                            (t) =>
+                              t.status === "complete" &&
+                              t.forwarded?.includes(m.id),
+                          )
+                            ? "主会场已回应"
+                            : s.pendingQuestions.some((q) => q.id === m.id)
+                              ? "等待主会场回应"
+                              : "交给主会场"}
                         </button>
                       ) : (
                         <>
