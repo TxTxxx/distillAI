@@ -16,6 +16,11 @@ describe("local persistence and reading integrity", () => {
   it("roundtrips session data through IndexedDB and JSON", async () => {
     const s = newSession("World Model", "research");
     s.notes = "我的笔记";
+    s.sharedPrompt = "自定义研究规范";
+    s.tutorPrompt = "自定义助教";
+    s.autoStop = true;
+    s.stopReason = "已覆盖问题";
+    s.stopAtTurn = 6;
     s.turns = [
       {
         id: "turn-1",
@@ -49,6 +54,11 @@ describe("local persistence and reading integrity", () => {
     expect(r.sources[0].pages).toEqual(s.sources[0].pages);
     expect(r.sources[0].blobId).toBeUndefined();
     expect(r.notes).toBe(s.notes);
+    expect(r.sharedPrompt).toBe(s.sharedPrompt);
+    expect(r.tutorPrompt).toBe(s.tutorPrompt);
+    expect(r.autoStop).toBe(true);
+    expect(r.stopReason).toBe(s.stopReason);
+    expect(r.stopAtTurn).toBe(6);
     expect(r.turns[0].forwarded).toEqual(["q1"]);
     expect(r.playback).toEqual(s.playback);
   });

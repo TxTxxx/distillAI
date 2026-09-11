@@ -162,3 +162,92 @@ describe("conversation orchestration", () => {
     e.stop();
   });
 });
+
+describe("autonomous conclusion and editable prompts", () => {
+  it("concludes after three full rounds, saves reason, and restores completed state", async () => {
+    vi.spyOn(api, "generate").mockImplementation(async (_c, r) => {
+      if (r.system.includes("收束评估员"))
+        return {
+          ...result,
+          text: '{"stop":true,"reason":"机制、反例与验证路径已覆盖。"}',
+        };
+      r.onDelta?.("观点与实验设计");
+      return result;
+    });
+    const e = engine();
+    e.update((s) => {
+      s.rounds = 12;
+      s.autoStop = true;
+    });
+    await e.start();
+    expect(e.state.session?.turns).toHaveLength(6);
+    expect(e.state.session?.stopReason).toContain("验证路径");
+    expect(e.state.status).toBe("complete");
+    const saved = structuredClone(e.state.session!);
+    e.select(saved);
+    expect(e.state.status).toBe("complete");
+    e.stop();
+  });
+  it("continues to the cap when the decision is malformed", async () => {
+    vi.spyOn(api, "generate").mockImplementation(async (_c, r) => {
+      r.onDelta?.("继续推导");
+      return {
+        ...result,
+        text: r.system.includes("收束评估员") ? "结束吧" : result.text,
+      };
+    });
+    const e = engine();
+    e.update((s) => {
+      s.rounds = 4;
+      s.autoStop = true;
+    });
+    await e.start();
+    expect(e.state.session?.turns).toHaveLength(8);
+    expect(e.state.session?.stopReason).toContain("最大轮数");
+    e.stop();
+  });
+  it("does not discard a question forwarded while judging", async () => {
+    const e = engine();
+    let decisions = 0;
+    vi.spyOn(api, "generate").mockImplementation(async (_c, r) => {
+      if (r.system.includes("收束评估员")) {
+        decisions++;
+        e.forward("late", "新的验证问题");
+        return { ...result, text: '{"stop":true,"reason":"充分"}' };
+      }
+      r.onDelta?.("回答");
+      return result;
+    });
+    e.update((s) => {
+      s.rounds = 4;
+      s.autoStop = true;
+    });
+    await e.start();
+    expect(decisions).toBe(1);
+    expect(e.state.session?.turns).toHaveLength(8);
+    expect(e.state.session?.turns[6].forwarded).toContain("late");
+    e.stop();
+  });
+  it("uses edited instructions for both speakers and the tutor", async () => {
+    const prompts: string[] = [];
+    vi.spyOn(api, "generate").mockImplementation(async (_c, r) => {
+      prompts.push(r.system);
+      r.onDelta?.("回答");
+      return result;
+    });
+    const e = engine();
+    e.update((s) => {
+      s.sharedPrompt = "共同指令测试";
+      s.roles[0].duty = "A 自定义研究方法";
+      s.roles[1].duty = "B 自定义质疑方式";
+      s.tutorPrompt = "助教自定义举例方式";
+    });
+    await e.start();
+    await e.ask("解释");
+    expect(prompts[0]).toContain("共同指令测试");
+    expect(prompts[0]).toContain("A 自定义研究方法");
+    expect(prompts[1]).toContain("B 自定义质疑方式");
+    expect(prompts.at(-1)).toContain("助教自定义举例方式");
+    e.stop();
+  });
+});

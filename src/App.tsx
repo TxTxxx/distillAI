@@ -29,7 +29,6 @@ import {
   Trash2,
   X,
   LoaderCircle,
-  Check,
   Download,
 } from "lucide-react";
 import { defaults, rolePresets } from "./types";
@@ -40,6 +39,8 @@ import { errorMessage } from "./lib/api";
 import { exampleSession } from "./lib/demo";
 import Room from "./components/Room";
 import Modal from "./components/Modal";
+import AgentEditor from "./components/AgentEditor";
+import ResearchArt from "./components/ResearchArt";
 const Settings = lazy(() => import("./components/Settings"));
 const Materials = lazy(() => import("./components/Materials"));
 const topics = [
@@ -87,6 +88,8 @@ export default function App() {
   const [topic, setTopic] = useState("");
   const [mode, setMode] = useState<Session["mode"]>("research");
   const [rounds, setRounds] = useState(12);
+  const [autoStop, setAutoStop] = useState(true);
+  const [editorAgent, setEditorAgent] = useState(0);
   const [search, setSearch] = useState(true);
   const [voice, setVoice] = useState(false);
   const [roles, setRoles] = useState<[Role, Role]>(
@@ -108,6 +111,7 @@ export default function App() {
         if (cancelled) return;
         setHistory(sessions);
         setSettings(config);
+        setRoles(structuredClone(config.prompts.research));
         engine.settings = config;
         const id = location.hash.match(/^#\/s\/(.+)$/)?.[1];
         if (id) engine.select(sessions.find((s) => s.id === id));
@@ -184,6 +188,9 @@ export default function App() {
     const session = engine.create(topic.trim(), mode);
     engine.update((s) => {
       s.rounds = rounds;
+      s.autoStop = autoStop;
+      s.sharedPrompt = settings.prompts.shared;
+      s.tutorPrompt = settings.prompts.tutor;
       s.search = search;
       s.voice = voice;
       s.sources = sources;
@@ -409,24 +416,39 @@ export default function App() {
         ) : (
           <>
             <main className="launch">
-              <div className="eyebrow">
-                <span /> EMBODIED INTELLIGENCE LAB
+              <div className="launch-heading">
+                <div>
+                  <div className="eyebrow">
+                    <span /> YOUR PERSONAL RESEARCH STUDIO
+                  </div>
+                  <h1>
+                    把一个问题，
+                    <br />
+                    <span>讨论透。</span>
+                  </h1>
+                  <p className="intro">
+                    让 AI 交锋，让理解发生。
+                    <br />
+                    在解释与追问之间，形成自己的研究判断。
+                  </p>
+                </div>
+                <div className="hero-art">
+                  <ResearchArt />
+                  <span className="art-caption">
+                    THINK · QUESTION · UNDERSTAND
+                  </span>
+                  <div className="art-badge">
+                    ∞<small>思考，没有单一视角</small>
+                  </div>
+                </div>
               </div>
-              <h1>
-                让思考，<span>再深入一层。</span>
-              </h1>
-              <p className="intro">
-                旁听一场好讨论，带走一个新视角。
-                <br />
-                两位研究伙伴深入对谈，一位私人助教为你解惑。
-              </p>
               <section className="composer">
                 <div className="mode-tabs">
                   <button
                     className={mode === "research" ? "selected" : ""}
                     onClick={() => {
                       setMode("research");
-                      setRoles(structuredClone(rolePresets.research));
+                      setRoles(structuredClone(settings.prompts.research));
                     }}
                   >
                     <FlaskConical size={16} />
@@ -436,7 +458,7 @@ export default function App() {
                     className={mode === "interview" ? "selected" : ""}
                     onClick={() => {
                       setMode("interview");
-                      setRoles(structuredClone(rolePresets.interview));
+                      setRoles(structuredClone(settings.prompts.interview));
                     }}
                   >
                     <GraduationCap size={17} />
@@ -446,7 +468,7 @@ export default function App() {
                 <textarea
                   value={topic}
                   onChange={(e) => setTopic(e.target.value)}
-                  placeholder="今天，你想深入理解什么？"
+                  placeholder="提出你的研究问题，或从下方选择一个灵感…"
                   aria-label="研究主题"
                   onKeyDown={(e) => {
                     if ((e.metaKey || e.ctrlKey) && e.key === "Enter") enter();
@@ -487,7 +509,7 @@ export default function App() {
                     disabled={!topic.trim() || !loaded}
                     onClick={enter}
                   >
-                    进入研讨室 <ArrowUpRight size={17} />
+                    开始探索 <ArrowUpRight size={17} />
                   </button>
                 </div>
               </section>
@@ -510,9 +532,24 @@ export default function App() {
                   <Headphones size={14} />
                   双角色听讲
                 </label>
-                <label className="rounds-label">
-                  讨论轮数
+                <label
+                  className="stop-mode"
+                  title="至少讨论 3 轮后，由助教模型评估机制、证据、质疑与下一步是否充分。每轮增加一次短评估调用，始终遵守最大轮数。"
+                >
+                  推进方式
                   <select
+                    aria-label="推进方式"
+                    value={autoStop ? "auto" : "fixed"}
+                    onChange={(e) => setAutoStop(e.target.value === "auto")}
+                  >
+                    <option value="auto">自主收束</option>
+                    <option value="fixed">固定轮数</option>
+                  </select>
+                </label>
+                <label className="rounds-label">
+                  {autoStop ? "最多" : "固定"}
+                  <select
+                    aria-label={autoStop ? "最大讨论轮数" : "固定讨论轮数"}
                     value={rounds}
                     onChange={(e) => setRounds(Number(e.target.value))}
                   >
@@ -528,15 +565,44 @@ export default function App() {
                   onClick={() => setModal("roles")}
                 >
                   <Settings2 size={14} />
-                  角色设定
+                  Agent 配置
                 </button>
               </div>
+              <div className="collaborators">
+                <div className="collaborators-label">
+                  <span className="micro-label">THE ROUNDTABLE</span>
+                  <strong>你的思考搭档</strong>
+                </div>
+                {[roles[0], roles[1], { name: "私人助教", duty: "" }].map(
+                  (role, i) => (
+                    <button
+                      key={i}
+                      onClick={() => {
+                        setEditorAgent(i);
+                        setModal("roles");
+                      }}
+                      className="collaborator"
+                    >
+                      <span className={`agent-index agent-${i}`}>
+                        {["A", "B", "T"][i]}
+                      </span>
+                      <span>
+                        <strong>{role.name}</strong>
+                        <small>{["构建观点", "追问证据", "随时解惑"][i]}</small>
+                      </span>
+                      <ArrowUpRight size={14} />
+                    </button>
+                  ),
+                )}
+              </div>
               <div className="section-heading">
-                <h2>从一个好问题开始</h2>
-                <span>为你的研究方向准备</span>
+                <h2>
+                  从好奇心出发<span>EXPLORE A DIRECTION</span>
+                </h2>
+                <span>01 — 03</span>
               </div>
               <div className="topic-grid">
-                {topics.map(({ tag, question, detail, prompt, Icon }, i) => (
+                {topics.map(({ tag, question, detail, prompt }, i) => (
                   <button
                     className="topic-card"
                     key={tag}
@@ -546,12 +612,12 @@ export default function App() {
                       <span>{tag}</span>
                       <span>0{i + 1}</span>
                     </div>
-                    <div className="topic-icon">
-                      <Icon size={23} />
+                    <ResearchArt variant={i} />
+                    <div className="topic-card-content">
+                      <h3>{question}</h3>
+                      <p>{detail}</p>
+                      <ArrowUpRight className="topic-arrow" size={18} />
                     </div>
-                    <h3>{question}</h3>
-                    <p>{detail}</p>
-                    <ArrowUpRight className="topic-arrow" size={18} />
                   </button>
                 ))}
               </div>
@@ -593,61 +659,38 @@ export default function App() {
         )}
       </Suspense>
       {modal === "roles" && (
-        <Modal title="设定你的研究伙伴" onClose={close}>
-          <p className="help">
-            明确两位角色的任务，让不同视角产生有价值的追问。修改将在下一次发言中生效。
-          </p>
-          {(s?.roles ?? roles).map((role, i) => (
-            <div className="role-form" key={i}>
-              <span className={`avatar role-${i}`}>{i === 0 ? "A" : "B"}</span>
-              <div className="form-grid">
-                <label className="full">
-                  角色名称
-                  <input
-                    value={role.name}
-                    onChange={(e) => {
-                      if (s)
-                        engine.update((s) => {
-                          s.roles[i].name = e.target.value;
-                        });
-                      else
-                        setRoles(
-                          (r) =>
-                            r.map((x, n) =>
-                              n === i ? { ...x, name: e.target.value } : x,
-                            ) as [Role, Role],
-                        );
-                    }}
-                  />
-                </label>
-                <label className="full">
-                  角色职责
-                  <textarea
-                    rows={4}
-                    value={role.duty}
-                    onChange={(e) => {
-                      if (s)
-                        engine.update((s) => {
-                          s.roles[i].duty = e.target.value;
-                        });
-                      else
-                        setRoles(
-                          (r) =>
-                            r.map((x, n) =>
-                              n === i ? { ...x, duty: e.target.value } : x,
-                            ) as [Role, Role],
-                        );
-                    }}
-                  />
-                </label>
-              </div>
-            </div>
-          ))}
-          <button className="primary" onClick={close}>
-            <Check size={16} />
-            完成设定
-          </button>
-        </Modal>
+        <AgentEditor
+          initialAgent={editorAgent}
+          roles={s?.roles ?? roles}
+          shared={
+            s
+              ? (s.sharedPrompt ?? defaults.prompts.shared)
+              : settings.prompts.shared
+          }
+          tutor={
+            s
+              ? (s.tutorPrompt ?? defaults.prompts.tutor)
+              : settings.prompts.tutor
+          }
+          mode={s?.mode ?? mode}
+          inSession={!!s}
+          onClose={close}
+          onChange={(next, shared, tutor) => {
+            if (s)
+              engine.update((s) => {
+                s.roles = next;
+                s.sharedPrompt = shared;
+                s.tutorPrompt = tutor;
+              });
+            else {
+              setRoles(next);
+              setSettings((c) => ({
+                ...c,
+                prompts: { ...c.prompts, [mode]: next, shared, tutor },
+              }));
+            }
+          }}
+        />
       )}
       {modal === "history" && (
         <Modal title="你的学习记录" onClose={close} wide>

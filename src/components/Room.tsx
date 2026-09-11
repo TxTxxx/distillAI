@@ -123,7 +123,7 @@ export default function Room({
   const statusLabel = {
     idle: "等待开始",
     preparing: "准备本场资料",
-    running: "研讨进行中",
+    running: state.judging ? "正在评估讨论是否充分" : "研讨进行中",
     paused: "已暂停",
     complete: "本场研讨已结束",
     error: "等待恢复",
@@ -147,11 +147,12 @@ export default function Room({
             </div>
             <div>
               <button
-                className="icon-button"
-                aria-label="角色设定"
+                className="room-agent-button"
+                aria-label="Agent 配置"
                 onClick={onRoles}
               >
-                <Settings2 size={16} />
+                <Settings2 size={15} />
+                <span>Agent 配置</span>
               </button>
               <button
                 className="icon-button"
@@ -344,11 +345,16 @@ export default function Room({
           {state.status === "complete" && (
             <div className="discussion-end">
               <Check size={18} />
-              <span>本场研讨告一段落</span>
+              <span>{s.stopReason || "本场研讨告一段落"}</span>
               <button
                 onClick={() => {
                   engine.update((s) => {
-                    s.rounds += 4;
+                    s.rounds =
+                      s.turns.filter((t) => t.status === "complete").length /
+                        2 +
+                      4;
+                    s.stopReason = undefined;
+                    s.stopAtTurn = s.turns.length;
                   });
                   void engine.start();
                 }}
@@ -409,6 +415,7 @@ export default function Room({
               <small>
                 {s.demo ? "示例内容，仅用于体验界面" : statusLabel} ·{" "}
                 {Math.ceil(count / 2)} / {s.rounds} 轮
+                {s.autoStop ? " · 自主收束" : ""}
               </small>
             </div>
           </div>

@@ -1,3 +1,4 @@
+import { sharedPrompt, tutorPrompt } from "./lib/prompts";
 export type Provider = "openai" | "claude" | "gemini" | "compatible";
 export type ProfileKey = "shared" | "a" | "b" | "tutor";
 export interface ModelConfig {
@@ -18,6 +19,12 @@ export interface Settings {
   voice: VoiceConfig;
   assignments: [ProfileKey, ProfileKey, ProfileKey];
   speed: number;
+  prompts: {
+    shared: string;
+    tutor: string;
+    research: [Role, Role];
+    interview: [Role, Role];
+  };
 }
 export interface Source {
   id: string;
@@ -71,6 +78,11 @@ export interface Session {
   createdAt: number;
   updatedAt: number;
   rounds: number;
+  autoStop?: boolean;
+  stopReason?: string;
+  stopAtTurn?: number;
+  sharedPrompt?: string;
+  tutorPrompt?: string;
   roles: [Role, Role];
   turns: Turn[];
   tutor: TutorMessage[];
@@ -147,6 +159,12 @@ export const defaults: Settings = {
     voices: ["cedar", "marin", "coral"],
   },
   speed: 1,
+  prompts: {
+    shared: sharedPrompt,
+    tutor: tutorPrompt,
+    research: structuredClone(rolePresets.research),
+    interview: structuredClone(rolePresets.interview),
+  },
 };
 export const providerBases: Record<Provider, string> = {
   openai: "https://api.openai.com/v1",
@@ -162,6 +180,9 @@ export function newSession(title: string, mode: Session["mode"]): Session {
     createdAt: Date.now(),
     updatedAt: Date.now(),
     rounds: 12,
+    autoStop: true,
+    sharedPrompt,
+    tutorPrompt,
     roles: structuredClone(rolePresets[mode]),
     turns: [],
     tutor: [],

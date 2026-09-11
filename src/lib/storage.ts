@@ -56,6 +56,7 @@ export const storage = {
       ...value,
       profiles: { ...structuredClone(defaults.profiles), ...value.profiles },
       voice: { ...defaults.voice, ...value.voice, key: "" },
+      prompts: { ...structuredClone(defaults.prompts), ...value.prompts },
     };
   },
 };
@@ -134,6 +135,15 @@ export function restore(raw: string): Session {
     createdAt: s.createdAt,
     updatedAt: Date.now(),
     rounds: s.rounds,
+    autoStop: !!s.autoStop,
+    stopReason: typeof s.stopReason === "string" ? s.stopReason : undefined,
+    stopAtTurn:
+      Number.isInteger(s.stopAtTurn) && s.stopAtTurn! >= 0
+        ? s.stopAtTurn
+        : undefined,
+    sharedPrompt:
+      typeof s.sharedPrompt === "string" ? s.sharedPrompt : undefined,
+    tutorPrompt: typeof s.tutorPrompt === "string" ? s.tutorPrompt : undefined,
     roles: s.roles.map((r) => ({
       name: r.name,
       duty: r.duty,
