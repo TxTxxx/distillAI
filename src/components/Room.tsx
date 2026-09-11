@@ -1,0 +1,855 @@
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+import {
+  ArrowDown,
+  ArrowUp,
+  AudioLines,
+  BookMarked,
+  Bookmark,
+  Check,
+  ChevronRight,
+  Download,
+  FileText,
+  Globe,
+  Headphones,
+  LoaderCircle,
+  MessageCircle,
+  Pause,
+  Play,
+  Plus,
+  Send,
+  Settings2,
+  Sparkles,
+  Square,
+  Volume2,
+  X,
+  ExternalLink,
+  Pencil,
+} from "lucide-react";
+import type { Settings, Source } from "../types";
+import type { ResearchEngine, EngineState } from "../lib/engine";
+import { paragraphs } from "../lib/audio";
+import { safeUrl } from "../lib/api";
+import Markdown from "./Markdown";
+import Modal from "./Modal";
+const PdfViewer = lazy(() => import("./PdfViewer"));
+export default function Room({
+  engine,
+  state,
+  settings,
+  setSettings,
+  onMaterials,
+  onRoles,
+  onSettings,
+  onExport,
+}: {
+  engine: ResearchEngine;
+  state: EngineState;
+  settings: Settings;
+  setSettings: (s: Settings) => void;
+  onMaterials: () => void;
+  onRoles: () => void;
+  onSettings: () => void;
+  onExport: (type: "json" | "md") => void;
+}) {
+  const s = state.session!;
+  const [tab, setTab] = useState<"tutor" | "sources" | "notes">("tutor");
+  const [question, setQuestion] = useState("");
+  const [anchor, setAnchor] = useState<{ id: string; quote: string }>();
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [view, setView] = useState<{ source: Source; page?: number }>();
+  const [editNotes, setEditNotes] = useState(false);
+  const [follow, setFollow] = useState(true);
+  const scroll = useRef<HTMLDivElement>(null);
+  const input = useRef<HTMLTextAreaElement>(null);
+  const closeView = useCallback(() => setView(undefined), []);
+  const tutorScroll = useRef<HTMLDivElement>(null);
+  const tutorFollow = useRef(true);
+  useEffect(() => {
+    setAnchor(undefined);
+    setQuestion("");
+    setFollow(true);
+    setView(undefined);
+    setEditNotes(false);
+  }, [s.id]);
+  useEffect(() => {
+    if (follow && scroll.current)
+      scroll.current.scrollTop = scroll.current.scrollHeight;
+  }, [s.turns.at(-1)?.text, follow, state.status]);
+  useEffect(() => {
+    if (tutorFollow.current && tutorScroll.current)
+      tutorScroll.current.scrollTop = tutorScroll.current.scrollHeight;
+  }, [s.tutor.at(-1)?.text]);
+  const showSource = (label: string, page?: number) => {
+    const source = s.sources.find((x) => x.label === label);
+    if (source) setView({ source, page });
+  };
+  const jump = (id: string) => {
+    setFollow(false);
+    document
+      .getElementById(`turn-${id}`)
+      ?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+  const askAbout = (id: string, text: string) => {
+    const selection = window.getSelection()?.toString();
+    setAnchor({
+      id,
+      quote:
+        selection && text.includes(selection) ? selection : text.slice(0, 1200),
+    });
+    setTab("tutor");
+    setPanelOpen(true);
+    setTimeout(() => input.current?.focus(), 20);
+  };
+  const ask = () => {
+    if (!question.trim() || state.tutorBusy) return;
+    void engine.ask(question.trim(), anchor?.id, anchor?.quote);
+    setQuestion("");
+  };
+  const bookmark = (id: string) =>
+    engine.update((s) => {
+      s.bookmarks = s.bookmarks.includes(id)
+        ? s.bookmarks.filter((x) => x !== id)
+        : [...s.bookmarks, id];
+    });
+  const running = ["running", "preparing"].includes(state.status);
+  const count = s.turns.filter((t) => t.status === "complete").length;
+  const statusLabel = {
+    idle: "等待开始",
+    preparing: "准备本场资料",
+    running: "研讨进行中",
+    paused: "已暂停",
+    complete: "本场研讨已结束",
+    error: "等待恢复",
+  }[state.status];
+  return (
+    <div className="room">
+      <section className="main-stage">
+        <div className="room-heading">
+          <div className="room-eyebrow">
+            {s.mode === "research" ? "RESEARCH DIALOGUE" : "RESEARCH INTERVIEW"}
+            <span>{s.demo ? "示例会话 · 非真实模型输出" : statusLabel}</span>
+          </div>
+          <h1>{s.title}</h1>
+          <div className="room-meta">
+            <div className="role-pair">
+              <span className="mini-avatar role-0">A</span>
+              {s.roles[0].name}
+              <span className="pair-line" />
+              <span className="mini-avatar role-1">B</span>
+              {s.roles[1].name}
+            </div>
+            <div>
+              <button
+                className="icon-button"
+                aria-label="角色设定"
+                onClick={onRoles}
+              >
+                <Settings2 size={16} />
+              </button>
+              <button
+                className="icon-button"
+                aria-label="导出 Markdown"
+                onClick={() => onExport("md")}
+              >
+                <Download size={16} />
+              </button>
+              <button
+                className="icon-button panel-trigger"
+                aria-label="打开私人助教"
+                onClick={() => setPanelOpen(true)}
+              >
+                <MessageCircle size={18} />
+              </button>
+            </div>
+          </div>
+        </div>
+        <div
+          className="discussion-scroll"
+          ref={scroll}
+          onScroll={() => {
+            const e = scroll.current!;
+            setFollow(e.scrollHeight - e.scrollTop - e.clientHeight < 90);
+          }}
+        >
+          {!s.turns.length && (
+            <div className="stage-empty">
+              <div className="empty-orbit">
+                <BookMarked size={34} />
+              </div>
+              <h2>
+                {state.status === "preparing"
+                  ? "正在整理讨论的起点"
+                  : "一个问题，两种研究视角。"}
+              </h2>
+              <p>
+                {state.status === "preparing"
+                  ? "检索相关资料，准备让观点有所依据。"
+                  : "研究伙伴已就位。连接你的模型后，开始这一场深入讨论。"}
+              </p>
+              {!running && (
+                <button className="primary" onClick={() => void engine.start()}>
+                  <Play size={16} />
+                  开始研讨
+                </button>
+              )}
+              <div className="stage-options">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={s.search}
+                    disabled={running}
+                    onChange={(e) =>
+                      engine.update((s) => {
+                        s.search = e.target.checked;
+                      })
+                    }
+                  />
+                  联网查找资料
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={s.voice}
+                    disabled={running}
+                    onChange={(e) =>
+                      engine.update((s) => {
+                        s.voice = e.target.checked;
+                      })
+                    }
+                  />
+                  双角色听讲
+                </label>
+                <button onClick={onMaterials}>
+                  <Plus size={14} />
+                  加入资料
+                </button>
+              </div>
+              <button className="text-button" onClick={onSettings}>
+                <Settings2 size={15} />
+                配置模型与声音
+              </button>
+            </div>
+          )}
+          {s.turns.map((turn, i) => (
+            <article
+              id={`turn-${turn.id}`}
+              className={`turn turn-${turn.speaker} ${state.playing?.turnId === turn.id ? "speaking" : ""}`}
+              key={turn.id}
+            >
+              <div className="turn-avatar">
+                <span className={`avatar role-${turn.speaker}`}>
+                  {turn.speaker === 0 ? "A" : "B"}
+                </span>
+                <span className="turn-track" />
+              </div>
+              <div className="turn-body">
+                <header>
+                  <strong>{s.roles[turn.speaker].name}</strong>
+                  <span className="role-tag">
+                    {turn.speaker === 0 ? "提出与解释" : "追问与检验"}
+                  </span>
+                  <time>第 {Math.floor(i / 2) + 1} 轮</time>
+                </header>
+                {paragraphs(turn.text, true).map((text, n) => (
+                  <div
+                    className={`spoken-paragraph ${state.playing?.turnId === turn.id && state.playing.segment === n ? "reading" : ""}`}
+                    key={n}
+                  >
+                    <Markdown
+                      text={text}
+                      sources={s.sources}
+                      citations={turn.citations}
+                      onSource={showSource}
+                    />
+                    {turn.status === "complete" && (
+                      <button
+                        className="paragraph-play"
+                        title="重听本段及后续内容"
+                        onClick={() => void engine.replay(turn.id, n)}
+                      >
+                        <Volume2 size={13} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                {turn.status === "streaming" && (
+                  <div className="typing">
+                    <span />
+                    <span />
+                    <span />
+                  </div>
+                )}
+                {turn.status === "error" || turn.status === "interrupted" ? (
+                  <div className="incomplete-label">
+                    本次发言未完成，继续研讨将重新生成这一发言。
+                  </div>
+                ) : null}
+                {turn.citations.length > 0 && (
+                  <div className="citation-list">
+                    {turn.citations.map((c) => (
+                      <a
+                        key={c.url}
+                        href={safeUrl(c.url)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <Globe size={12} />
+                        {c.title}
+                        <ExternalLink size={11} />
+                      </a>
+                    ))}
+                  </div>
+                )}
+                <div className="turn-actions">
+                  <button onClick={() => askAbout(turn.id, turn.text)}>
+                    <MessageCircle size={14} />
+                    追问这段
+                  </button>
+                  <button
+                    className={s.bookmarks.includes(turn.id) ? "saved" : ""}
+                    onClick={() => bookmark(turn.id)}
+                  >
+                    <Bookmark
+                      size={14}
+                      fill={
+                        s.bookmarks.includes(turn.id) ? "currentColor" : "none"
+                      }
+                    />
+                    {s.bookmarks.includes(turn.id) ? "已收藏" : "收藏"}
+                  </button>
+                  <button
+                    disabled={turn.status !== "complete"}
+                    onClick={() => void engine.replay(turn.id)}
+                  >
+                    <Volume2 size={14} />
+                    重听
+                  </button>
+                  {state.playing?.turnId === turn.id && (
+                    <span className="now-reading">
+                      <AudioLines size={14} />
+                      正在朗读
+                    </span>
+                  )}
+                </div>
+              </div>
+            </article>
+          ))}
+          {state.status === "complete" && (
+            <div className="discussion-end">
+              <Check size={18} />
+              <span>本场研讨告一段落</span>
+              <button
+                onClick={() => {
+                  engine.update((s) => {
+                    s.rounds += 4;
+                  });
+                  void engine.start();
+                }}
+              >
+                再深入 4 轮<ChevronRight size={14} />
+              </button>
+            </div>
+          )}
+        </div>
+        {!follow && s.turns.length > 0 && (
+          <button
+            className="back-live"
+            onClick={() => {
+              setFollow(true);
+              scroll.current?.scrollTo({
+                top: scroll.current.scrollHeight,
+                behavior: "smooth",
+              });
+            }}
+          >
+            <ArrowDown size={14} />
+            回到当前发言
+          </button>
+        )}
+        <div className="player">
+          <div className="player-main">
+            <button
+              className="play-button"
+              aria-label={
+                state.replaying
+                  ? "暂停或继续重听"
+                  : running
+                    ? "暂停研讨"
+                    : "继续研讨"
+              }
+              disabled={
+                (s.demo || state.status === "complete") && !state.replaying
+              }
+              onClick={() =>
+                state.replaying
+                  ? engine.toggleReplay()
+                  : running
+                    ? engine.pause()
+                    : void engine.resume()
+              }
+            >
+              {running || (state.replaying && !engine.replayAudio.paused) ? (
+                <Pause size={19} fill="currentColor" />
+              ) : (
+                <Play size={19} fill="currentColor" />
+              )}
+            </button>
+            <div className="player-description">
+              <strong>
+                {s.voice ? "双角色听讲" : "文字研讨"}
+                {state.playing && <AudioLines size={15} />}
+              </strong>
+              <small>
+                {s.demo ? "示例内容，仅用于体验界面" : statusLabel} ·{" "}
+                {Math.ceil(count / 2)} / {s.rounds} 轮
+              </small>
+            </div>
+          </div>
+          <div className="player-controls">
+            <button
+              className={`icon-button ${s.voice ? "active" : ""}`}
+              title={s.voice ? "切换文字模式" : "开启双角色听讲"}
+              onClick={() => engine.toggleVoice()}
+            >
+              <Headphones size={18} />
+            </button>
+            <select
+              aria-label="播放速度"
+              value={settings.speed}
+              onChange={(e) =>
+                setSettings({ ...settings, speed: Number(e.target.value) })
+              }
+            >
+              {[0.75, 1, 1.25, 1.5, 2].map((v) => (
+                <option key={v} value={v}>
+                  {v}×
+                </option>
+              ))}
+            </select>
+            <button
+              className="icon-button"
+              title="结束并停止音频"
+              onClick={() => engine.stop()}
+            >
+              <Square size={15} />
+            </button>
+          </div>
+          <div className="player-progress">
+            <span
+              style={{
+                width: `${Math.min(100, (count / (s.rounds * 2)) * 100)}%`,
+              }}
+            />
+          </div>
+          <div className="audio-disclosure">
+            {state.speechError ? (
+              <button
+                onClick={() => {
+                  engine.audio.stop();
+                  engine.emit({ error: "", speechError: false });
+                  void engine.resume();
+                }}
+              >
+                语音失败 · 点击重试
+              </button>
+            ) : (
+              "AI 合成声音 · 语音按段落定位"
+            )}
+          </div>
+        </div>
+      </section>
+      <aside className={`companion ${panelOpen ? "panel-open" : ""}`}>
+        <header className="companion-header">
+          <div>
+            <span className="tutor-star">
+              <Sparkles size={17} />
+            </span>
+            <strong>私人助教</strong>
+          </div>
+          <button
+            className="icon-button panel-close"
+            aria-label="关闭助教面板"
+            onClick={() => setPanelOpen(false)}
+          >
+            <X size={18} />
+          </button>
+          <span className="quiet-badge">伴你深读</span>
+        </header>
+        <div className="panel-tabs">
+          <button
+            className={tab === "tutor" ? "active" : ""}
+            onClick={() => setTab("tutor")}
+          >
+            答疑
+          </button>
+          <button
+            className={tab === "sources" ? "active" : ""}
+            onClick={() => setTab("sources")}
+          >
+            资料 <small>{s.sources.length}</small>
+          </button>
+          <button
+            className={tab === "notes" ? "active" : ""}
+            onClick={() => setTab("notes")}
+          >
+            笔记
+          </button>
+        </div>
+        {tab === "tutor" ? (
+          <>
+            <div
+              className="tutor-scroll"
+              ref={tutorScroll}
+              onScroll={() => {
+                const e = tutorScroll.current!;
+                tutorFollow.current =
+                  e.scrollHeight - e.scrollTop - e.clientHeight < 60;
+              }}
+            >
+              {!s.tutor.length ? (
+                <div className="tutor-welcome">
+                  <div className="tutor-emblem">
+                    <Sparkles size={25} />
+                  </div>
+                  <h3>把没懂的地方，留给我。</h3>
+                  <p>
+                    我会结合这场讨论和你的资料，
+                    <br />
+                    帮你拆解概念、公式与推导。
+                  </p>
+                  <div className="tutor-suggestions">
+                    {[
+                      "这场讨论的核心分歧是什么？",
+                      "帮我补齐理解这段话的前置知识",
+                      "用一个具体例子解释刚才的观点",
+                    ].map((q) => (
+                      <button
+                        key={q}
+                        onClick={() => {
+                          setQuestion(q);
+                          input.current?.focus();
+                        }}
+                      >
+                        {q}
+                        <ArrowUp size={13} />
+                      </button>
+                    ))}
+                  </div>
+                  <div className="tutor-note">
+                    <span />
+                    这里的提问不会打断主会场
+                  </div>
+                </div>
+              ) : (
+                s.tutor.map((m) => (
+                  <div
+                    className={`tutor-message ${m.role}`}
+                    id={`turn-${m.id}`}
+                    key={m.id}
+                  >
+                    <div className="tutor-message-label">
+                      {m.role === "user" ? "我的问题" : "私人助教"}
+                      {m.anchorId && (
+                        <button onClick={() => jump(m.anchorId!)}>
+                          定位原文
+                        </button>
+                      )}
+                    </div>
+                    {m.quote && m.role === "user" && (
+                      <blockquote>
+                        {m.quote.slice(0, 180)}
+                        {m.quote.length > 180 ? "…" : ""}
+                      </blockquote>
+                    )}
+                    <Markdown
+                      text={m.text}
+                      sources={s.sources}
+                      citations={m.citations}
+                      onSource={showSource}
+                    />
+                    {m.status === "streaming" && (
+                      <LoaderCircle className="spin" size={14} />
+                    )}{" "}
+                    {(m.status === "error" || m.status === "interrupted") && (
+                      <p className="incomplete-label">
+                        回答中断。请重新提问或重述需要解释的部分。
+                      </p>
+                    )}
+                    <div className="tutor-message-actions">
+                      {m.role === "user" ? (
+                        <button
+                          onClick={() =>
+                            engine.forward(
+                              m.id,
+                              `${m.quote ? "相关原文：" + m.quote + "\n" : ""}${m.text}`,
+                            )
+                          }
+                        >
+                          <Send size={12} />
+                          {s.pendingQuestions.some((q) => q.id === m.id)
+                            ? "等待主会场回应"
+                            : "交给主会场"}
+                        </button>
+                      ) : (
+                        <>
+                          <button onClick={() => bookmark(m.id)}>
+                            <Bookmark size={12} />
+                            {s.bookmarks.includes(m.id) ? "已收藏" : "收藏"}
+                          </button>
+                          <button
+                            disabled={m.status !== "complete"}
+                            onClick={() => void engine.replay(m.id)}
+                          >
+                            <Volume2 size={12} />
+                            朗读
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+            {s.pendingQuestions.length > 0 && (
+              <div className="queued-questions">
+                <Send size={13} />
+                {s.pendingQuestions.length} 个问题等待主会场回应
+                <button
+                  onClick={() =>
+                    engine.update((s) => {
+                      s.pendingQuestions = [];
+                    })
+                  }
+                >
+                  撤回
+                </button>
+              </div>
+            )}
+            <div className="tutor-compose">
+              {anchor && (
+                <div className="quote-preview">
+                  <span>{anchor.quote.slice(0, 90)}…</span>
+                  <button
+                    aria-label="取消引用"
+                    onClick={() => setAnchor(undefined)}
+                  >
+                    <X size={13} />
+                  </button>
+                </div>
+              )}
+              <textarea
+                ref={input}
+                value={question}
+                onChange={(e) => setQuestion(e.target.value)}
+                placeholder="这里没懂？从一个问题开始…"
+                aria-label="向助教提问"
+                rows={3}
+                onKeyDown={(e) => {
+                  if (
+                    e.key === "Enter" &&
+                    !e.shiftKey &&
+                    !e.nativeEvent.isComposing
+                  ) {
+                    e.preventDefault();
+                    ask();
+                  }
+                }}
+              />
+              <div>
+                <span>Enter 发送 · Shift Enter 换行</span>
+                <button
+                  aria-label="发送问题"
+                  className="send-button"
+                  disabled={!question.trim() || state.tutorBusy}
+                  onClick={ask}
+                >
+                  {state.tutorBusy ? (
+                    <LoaderCircle className="spin" size={17} />
+                  ) : (
+                    <ArrowUp size={18} />
+                  )}
+                </button>
+              </div>
+            </div>
+          </>
+        ) : tab === "sources" ? (
+          <div className="panel-content">
+            <button className="add-material" onClick={onMaterials}>
+              <Plus size={16} />
+              加入论文或资料
+            </button>
+            <p className="help">
+              资料的读取状态会一直保留。点击条目查看正文或原页。
+            </p>
+            {!s.sources.length && (
+              <div className="empty-state">
+                <FileText size={26} />
+                <p>
+                  本场还没有资料。
+                  <br />
+                  加入论文，让讨论有所依据。
+                </p>
+              </div>
+            )}
+            {s.sources.map((source) => (
+              <button
+                className="source-card"
+                key={source.id}
+                onClick={() => setView({ source })}
+              >
+                <div>
+                  <span>{source.label}</span>
+                  <span className={`evidence ${source.evidence}`}>
+                    {
+                      {
+                        provided: "用户材料",
+                        extracted: "提取正文",
+                        search: "搜索摘要",
+                        unread: "尚未读取",
+                      }[source.evidence]
+                    }
+                  </span>
+                </div>
+                <h3>
+                  <FileText size={16} />
+                  {source.title}
+                </h3>
+                {source.warning && <p>{source.warning}</p>}
+                <span className="source-open">
+                  {source.kind === "pdf" ? "查看原页与文字" : "查看资料"}
+                  <ChevronRight size={13} />
+                </span>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="panel-content">
+            <div className="notes-toolbar">
+              <button
+                className="secondary"
+                disabled={state.noteBusy || !s.turns.length}
+                onClick={() => void engine.makeNotes()}
+              >
+                {state.noteBusy ? (
+                  <LoaderCircle className="spin" size={14} />
+                ) : (
+                  <Sparkles size={14} />
+                )}
+                整理笔记
+              </button>
+              <button
+                className="icon-button"
+                title={editNotes ? "完成编辑" : "编辑笔记"}
+                onClick={() => setEditNotes(!editNotes)}
+              >
+                {editNotes ? <Check size={16} /> : <Pencil size={16} />}
+              </button>
+              <button
+                className="icon-button"
+                title="导出完整备份"
+                onClick={() => onExport("json")}
+              >
+                <Download size={16} />
+              </button>
+            </div>
+            {editNotes ? (
+              <textarea
+                className="notes-editor"
+                aria-label="编辑学习笔记"
+                value={s.notes}
+                onChange={(e) =>
+                  engine.update((s) => {
+                    s.notes = e.target.value;
+                  })
+                }
+              />
+            ) : s.notes ? (
+              <Markdown
+                text={s.notes}
+                sources={s.sources}
+                onSource={showSource}
+              />
+            ) : (
+              <div className="empty-state">
+                <BookMarked size={26} />
+                <p>
+                  好的讨论，值得留下来。
+                  <br />
+                  研讨结束后会自动整理笔记。
+                </p>
+              </div>
+            )}
+            <h3 className="bookmark-heading">
+              <Bookmark size={15} />
+              收藏片段 <span>{s.bookmarks.length}</span>
+            </h3>
+            {s.bookmarks.map((id) => {
+              const m =
+                s.turns.find((t) => t.id === id) ??
+                s.tutor.find((t) => t.id === id);
+              return m ? (
+                <div className="bookmark-card" key={id}>
+                  <button
+                    onClick={() => {
+                      if (s.tutor.some((t) => t.id === id)) setTab("tutor");
+                      setTimeout(() => jump(id), 30);
+                    }}
+                  >
+                    {m.text.slice(0, 200)}…
+                  </button>
+                  <button className="text-button" onClick={() => bookmark(id)}>
+                    取消收藏
+                  </button>
+                </div>
+              ) : null;
+            })}
+          </div>
+        )}
+      </aside>
+      <Suspense fallback={null}>
+        {view &&
+          (view.source.kind === "pdf" ? (
+            <PdfViewer
+              source={view.source}
+              page={view.page}
+              onClose={closeView}
+            />
+          ) : (
+            <Modal
+              title={`${view.source.label} · ${view.source.title}`}
+              onClose={closeView}
+              wide
+            >
+              {view.source.warning && (
+                <p className="source-warning">{view.source.warning}</p>
+              )}
+              {view.source.url && safeUrl(view.source.url) && (
+                <a
+                  className="source-link"
+                  href={safeUrl(view.source.url)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <ExternalLink size={15} />
+                  打开原始来源
+                </a>
+              )}
+              <Markdown
+                text={
+                  view.source.text || "暂无可读取正文。请上传 PDF 或粘贴原文。"
+                }
+                sources={s.sources}
+              />
+            </Modal>
+          ))}
+      </Suspense>
+    </div>
+  );
+}
