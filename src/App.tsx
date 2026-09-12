@@ -1,19 +1,9 @@
 import { lazy, Suspense } from "react";
-import {
-  ArrowLeft,
-  BookOpen,
-  Download,
-  LoaderCircle,
-  Plus,
-  Settings2,
-  Trash2,
-  Upload,
-  X,
-} from "lucide-react";
+import { BookOpen, LoaderCircle, Plus, Settings2, X } from "lucide-react";
 import { useResearchApp } from "./lib/useResearchApp";
 import { defaults } from "./types";
 import { backup, download, markdown } from "./lib/storage";
-import { exampleSession } from "./lib/demo";
+import History from "./components/History";
 import Launch from "./components/Launch";
 import Room from "./components/Room";
 import Modal from "./components/Modal";
@@ -87,6 +77,7 @@ export default function App() {
       )}
       {s ? (
         <Room
+          key={s.id}
           engine={engine}
           state={state}
           settings={app.settings}
@@ -115,6 +106,7 @@ export default function App() {
       >
         {app.modal === "settings" && (
           <Settings
+            roles={s?.roles ?? app.roles}
             value={app.settings}
             onChange={app.setSettings}
             onClose={app.close}
@@ -163,70 +155,7 @@ export default function App() {
           }}
         />
       )}
-      {app.modal === "history" && (
-        <Modal title="研讨记录" onClose={app.close} wide>
-          <div className="history-actions">
-            <button
-              className="secondary"
-              onClick={() => app.importRef.current?.click()}
-            >
-              <Upload size={16} />
-              恢复会话备份
-            </button>
-            <button
-              className="text-button"
-              onClick={() => app.openSession(exampleSession())}
-            >
-              查看标注示例
-            </button>
-          </div>
-          {app.history.length ? (
-            app.history.map((item) => (
-              <div className="history-row" key={item.id}>
-                <button onClick={() => app.openSession(item)}>
-                  <span>
-                    <strong>{item.title}</strong>
-                    <small>
-                      {new Date(item.updatedAt).toLocaleDateString("zh-CN")} ·{" "}
-                      {item.turns.filter((t) => t.status === "complete").length}{" "}
-                      次发言{item.demo ? " · 示例" : ""}
-                    </small>
-                  </span>
-                </button>
-                <button
-                  className="icon-button"
-                  aria-label={`导出会话：${item.title}`}
-                  onClick={() =>
-                    download(
-                      `guanyan-${item.id}.json`,
-                      backup(item),
-                      "application/json",
-                    )
-                  }
-                >
-                  <Download size={17} />
-                </button>
-                <button
-                  className="icon-button"
-                  aria-label={`删除会话：${item.title}`}
-                  onClick={() => app.setDeleteId(item.id)}
-                >
-                  <Trash2 size={17} />
-                </button>
-              </div>
-            ))
-          ) : (
-            <div className="empty-state">
-              <h3>第一场研讨，从一个问题开始。</h3>
-              <p>讨论会自动保存在这里。</p>
-              <button className="primary" onClick={app.close}>
-                <ArrowLeft size={16} />
-                回到研究问题
-              </button>
-            </div>
-          )}
-        </Modal>
-      )}
+      {app.modal === "history" && <History app={app} />}
       {app.deleteId && (
         <Modal
           title="删除这场研讨？"

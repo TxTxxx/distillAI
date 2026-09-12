@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-12T21:40:12.731839+00:00",
+  "generatedAt": "2026-09-12T22:08:06.557975+00:00",
   "title": "Design System: 观研",
   "extensions": {
     "colorMeta": {
@@ -247,6 +247,11 @@
         "name": "reduced-motion",
         "value": "static final glyph state; no animations or transitions",
         "purpose": "Canvas respects matchMedia and CSS disables animation, transition and smooth scroll."
+      },
+      {
+        "name": "loading-spin",
+        "value": "1s linear infinite",
+        "purpose": "Loading icon; disabled by the reduced-motion media query."
       }
     ],
     "breakpoints": [
@@ -274,6 +279,11 @@
         "name": "mobile",
         "value": "680px",
         "query": "(max-width: 680px)"
+      },
+      {
+        "name": "short-window",
+        "value": "850px",
+        "query": "(min-width: 681px) and (max-height: 850px)"
       }
     ],
     "provenance": {
@@ -285,7 +295,8 @@
         "src/components/GlyphField.tsx",
         "src/components/Room.tsx",
         "src/components/AgentEditor.tsx",
-        "src/components/Settings.tsx"
+        "src/components/Settings.tsx",
+        "src/components/Modal.tsx"
       ],
       "direction": ".impeccable/chosen-direction.json",
       "approvedComp": ".impeccable/mocks/index.png",
@@ -298,12 +309,10 @@
       }
     },
     "verification": {
-      "status": "Mechanical responsive gate passed; final independent review disposition is ship. Desktop correction and the prior two material fixes are resolved, with no observed 1440px / 1505px regressions. All build phases closed at 2026-09-12T21:41:16.896Z within the visual and implementation review scope.",
-      "responsiveGate": "Parent workflow reports PASSED and build phase advanced responsive -> review.",
-      "compSimilarity": "Fresh desktop comparison reported approximately 87%.",
-      "measurementCorrection": "Stale desktop.png.png decoder intermediate archived before rerun; reference boxes for full navigation, library actions, filters and modes corrected against the approved comp.",
-      "staleBriefs": [],
-      "accessibility": "200% text zoom, real API calls and prolonged TTS playback remain unverified; visual workflow closure does not certify them."
+      "status": "Critique fixes implemented; 41 unit tests and production build pass. Source review found no blocking regressions.",
+      "browser": "1280x720 CTA bottom approximately 619px; initial discussion and empty tutor scrollTop 0; discussion scrollTop 720 restored after reload. 320x740, 390x844, 768x1024 and 1505x1000 layouts inspected with no observed page horizontal overflow. Missing configuration routes to Settings, and mobile tutor displays local recovery while retaining its draft.",
+      "limits": "Emulated viewports, not physical devices. No real API credentials, long-running TTS or 200% text zoom verification.",
+      "record": "VALIDATION.md"
     },
     "layout": {
       "unitCustomProperty": "--layout-unit",
@@ -313,7 +322,8 @@
       "usage": "Homepage and header geometry uses calc(N * var(--layout-unit, 1px)); 1505px approved composition unchanged, 1440px spacing proportional. Thin 1px rules unchanged.",
       "typography": "Control/body fonts remain stable. Library question headings, descriptions and filter text use the unit; 15px baseline description is approximately 12.97px at 1301px. Hero retains its own clamp/vw type scale.",
       "exclusions": "Reading mode does not define the unit. Existing ≤1300px and mobile layouts retain fallback/breakpoint behavior.",
-      "previewPolicy": "Snippets inherit --layout-unit when available and otherwise display the 1505px reference geometry via 1px fallback."
+      "previewPolicy": "Snippets inherit --layout-unit when available and otherwise display the 1505px reference geometry via 1px fallback.",
+      "entryFlow": "Short-window heading yields space to visible topic label, launch CTA and readiness. Local note/stop controls use normal flow. Mobile actions wrap."
     }
   },
   "components": [
@@ -354,7 +364,7 @@
       "kind": "nav",
       "refersTo": "navigation",
       "description": "文字导航与当前页底线。",
-      "html": "<nav class=\"ds-nav\" aria-label=\"主导航\"><button class=\"ds-nav-item ds-current\" aria-current=\"page\">研究研讨</button><button class=\"ds-nav-item\">学习记录</button><button class=\"ds-nav-item\">模型与声音</button></nav>",
+      "html": "<nav class=\"ds-nav\" aria-label=\"主导航\"><button class=\"ds-nav-item ds-current\" aria-current=\"page\">新的研讨</button><button class=\"ds-nav-item\">研讨记录</button><button class=\"ds-nav-item\">模型与声音</button></nav>",
       "css": ".ds-nav{font-family:-apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;display:flex;align-items:center;gap:calc(36 * var(--layout-unit, 1px));height:calc(96 * var(--layout-unit, 1px));border-bottom:1px solid var(--line,#d9dee7)}.ds-nav-item{font:inherit;font-size:17px;position:relative;height:100%;padding:0 calc(7 * var(--layout-unit, 1px));color:var(--ink,#11151b);background:transparent;border:0;cursor:pointer}.ds-nav-item:hover{background:#eef1f6}.ds-current:after{content:\"\";position:absolute;bottom:calc(23 * var(--layout-unit, 1px));height:2px;background:var(--blue,#1847f7);left:calc(7 * var(--layout-unit, 1px));right:calc(7 * var(--layout-unit, 1px))}.ds-nav-item:focus-visible{outline:2px solid var(--blue, #1847f7);outline-offset:4px}@media(min-width:1301px){.ds-nav{gap:calc(52 * var(--layout-unit, 1px))}}"
     },
     {
@@ -363,15 +373,15 @@
       "refersTo": "source-chip",
       "description": "已导入资料及具名移除入口。",
       "html": "<span class=\"ds-chip\">研究资料.pdf<button class=\"ds-remove\" aria-label=\"移除资料：研究资料.pdf\">×</button></span>",
-      "css": ".ds-chip{font-family:-apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--ink,#11151b);background:#edf1f8;padding:3px 8px;max-width:100%;overflow-wrap:anywhere}.ds-remove{font:inherit;color:inherit;background:transparent;border:0;padding:4px;cursor:pointer}.ds-remove:hover{background:#eef1f6}.ds-remove:focus-visible{outline:2px solid var(--blue, #1847f7);outline-offset:4px}"
+      "css": ".ds-chip{font-family:-apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;display:inline-flex;align-items:center;gap:calc(8 * var(--layout-unit, 1px));font-size:13px;color:var(--ink,#11151b);background:#edf1f8;padding:calc(3 * var(--layout-unit, 1px)) calc(8 * var(--layout-unit, 1px));max-width:100%;overflow-wrap:anywhere}.ds-remove{font:inherit;color:inherit;background:transparent;border:0;padding:calc(4 * var(--layout-unit, 1px));cursor:pointer}.ds-remove:hover{background:#eef1f6}.ds-remove:focus-visible{outline:2px solid var(--blue, #1847f7);outline-offset:4px}.ds-remove{min-width:44px;min-height:44px}"
     },
     {
       "name": "研究伙伴",
       "kind": "card",
       "refersTo": "agent-control",
-      "description": "轻边框的可编辑角色控件。",
-      "html": "<button class=\"ds-agent\"><span class=\"ds-agent-letter\">B</span><span><strong>质疑与检验</strong><small>检验假设与证据</small></span><span aria-hidden=\"true\">↗</span></button>",
-      "css": ".ds-agent{font-family:-apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;display:flex;align-items:center;gap:calc(14 * var(--layout-unit, 1px));text-align:left;color:var(--ink,#11151b);border:1px solid var(--line,#d9dee7);border-radius:calc(5 * var(--layout-unit, 1px));background:transparent;padding:calc(14 * var(--layout-unit, 1px)) calc(15 * var(--layout-unit, 1px));cursor:pointer}.ds-agent-letter{color:var(--teal,#15796f)}.ds-agent strong{display:block;font-size:16px}.ds-agent small{display:block;font-size:12px;line-height:1.6;color:var(--muted,#616977)}.ds-agent:hover{background:#eef1f6}.ds-agent:focus-visible{outline:2px solid var(--blue, #1847f7);outline-offset:4px}"
+      "description": "Actual editable role responsibilities, clamped to two lines.",
+      "html": "<button class=\"ds-agent\"><span class=\"ds-agent-letter\">B</span><span><strong>审稿人</strong><small>质疑假设 · 检验证据</small></span><span aria-hidden=\"true\">↗</span></button>",
+      "css": ".ds-agent{font-family:-apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;display:flex;align-items:center;gap:calc(14 * var(--layout-unit, 1px));text-align:left;color:var(--ink,#11151b);border:1px solid var(--line,#d9dee7);border-radius:calc(5 * var(--layout-unit, 1px));background:transparent;padding:calc(14 * var(--layout-unit, 1px)) calc(15 * var(--layout-unit, 1px));cursor:pointer}.ds-agent-letter{color:var(--teal,#15796f)}.ds-agent strong{display:block;font-size:16px}.ds-agent small{display:block;font-size:12px;line-height:1.6;color:var(--muted,#616977)}.ds-agent:hover{background:#eef1f6}.ds-agent:focus-visible{outline:2px solid var(--blue, #1847f7);outline-offset:4px}@media(min-width:1301px){.ds-agent strong{font-size:17px;font-weight:600}.ds-agent small{font-size:13px}}.ds-agent small{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}"
     },
     {
       "name": "问题索引条目",

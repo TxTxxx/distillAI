@@ -7,6 +7,7 @@ import {
 } from "react";
 import { defaults, rolePresets } from "../types";
 import type { Role, Session, Settings as SettingsType, Source } from "../types";
+import { launchIssue } from "./readiness";
 import { ResearchEngine } from "./engine";
 import { storage, restore } from "./storage";
 import { errorMessage } from "./api";
@@ -121,8 +122,15 @@ export function useResearchApp() {
     setTopic("");
     setSources([]);
   };
+  const configurationIssue = launchIssue(settings, voice);
   const enter = () => {
-    if (!topic.trim()) return;
+    if (!loaded || !topic.trim()) return;
+    if (configurationIssue) {
+      setModal("settings");
+      return;
+    }
+    engine.settings = settings;
+    engine.emit({ error: "" });
     const session = engine.create(topic.trim(), mode);
     engine.update((s) => {
       s.rounds = rounds;
@@ -205,6 +213,7 @@ export function useResearchApp() {
     openSession,
     newRoom,
     enter,
+    configurationIssue,
     addSources,
     handleImport,
     doDelete,

@@ -14,6 +14,7 @@ import type { ResearchApp } from "../lib/useResearchApp";
 import { useInspirations } from "../lib/useInspirations";
 import { rolePresets } from "../types";
 import { defaultInspirations, type Inspiration } from "../lib/inspirations";
+import { exampleSession } from "../lib/demo";
 import GlyphField from "./GlyphField";
 import QuestionLibrary from "./QuestionLibrary";
 
@@ -48,6 +49,41 @@ export default function Launch({ app }: { app: ResearchApp }) {
         library={library}
         selected={selected}
         onSelect={select}
+        footer={
+          app.history.some((session) => !session.demo) ? (
+            <section className="recent-research" aria-label="继续研究">
+              <div>
+                <h3>继续研究</h3>
+                <button
+                  className="text-button"
+                  onClick={() => app.setModal("history")}
+                >
+                  全部记录
+                </button>
+              </div>
+              {app.history
+                .filter((session) => !session.demo)
+                .slice(0, 3)
+                .map((session) => (
+                  <button
+                    key={session.id}
+                    onClick={() => app.openSession(session)}
+                  >
+                    <span>
+                      <strong>{session.title}</strong>
+                      <small>
+                        {session.notes.trim() ? "已有笔记" : "继续阅读"} ·{" "}
+                        {new Date(session.updatedAt).toLocaleDateString(
+                          "zh-CN",
+                        )}
+                      </small>
+                    </span>
+                    <ArrowRight size={16} />
+                  </button>
+                ))}
+            </section>
+          ) : null
+        }
       />
       <section className="draft-sheet" aria-label="新的研讨">
         <div className="draft-top">
@@ -83,7 +119,9 @@ export default function Launch({ app }: { app: ResearchApp }) {
           <GlyphField text={currentTitle.join("")} />
         </div>
         <label className="query-field">
-          <span className="sr-only">研究主题</span>
+          <span className="query-label">
+            研究主题 <small>可编辑 · ⌘ / Ctrl + Enter 开始</small>
+          </span>
           <textarea
             rows={1}
             value={app.topic}
@@ -130,8 +168,21 @@ export default function Launch({ app }: { app: ResearchApp }) {
             disabled={!app.loaded || !app.topic.trim()}
             onClick={app.enter}
           >
-            开始研讨
+            {app.configurationIssue ? "配置后开始研讨" : "开始研讨"}
             <ArrowRight size={22} />
+          </button>
+        </div>
+        <div className="launch-readiness">
+          <span role="status">
+            {!app.loaded
+              ? "正在读取配置…"
+              : app.configurationIssue || "模型信息已填写 · 可在设置中检测连接"}
+          </span>
+          <button
+            className="text-button"
+            onClick={() => app.openSession(exampleSession())}
+          >
+            先看标注示例
           </button>
         </div>
         <div className="agent-roster">
@@ -147,14 +198,10 @@ export default function Launch({ app }: { app: ResearchApp }) {
               <UserRound size={26} />
               <span>
                 <strong>{role.name}</strong>
-                <small>
-                  {
-                    [
-                      "提出问题 · 探索思路",
-                      "质疑假设 · 检验证据",
-                      "整理信息 · 辅助推理",
-                    ][i]
-                  }
+                <small title={role.duty || app.settings.prompts.tutor}>
+                  {i === 2
+                    ? "独立答疑 · 可编辑职责"
+                    : role.duty || "点击编辑职责"}
                 </small>
               </span>
               <ChevronDown size={14} />

@@ -56,6 +56,7 @@ export default function AgentEditor({
                 <button
                   key={i}
                   className={active === i ? "selected" : ""}
+                  aria-pressed={active === i}
                   onClick={() => {
                     setActive(i);
                     setPreview(false);

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import {
   ArrowRight,
   Check,
@@ -17,7 +17,9 @@ export default function QuestionLibrary({
   library,
   selected,
   onSelect,
+  footer,
 }: {
+  footer?: ReactNode;
   library: Library;
   selected: string;
   onSelect: (item: Inspiration) => void;
@@ -267,6 +269,7 @@ export default function QuestionLibrary({
           </button>
         )}
       </p>
+      {footer}
     </aside>
   );
 }

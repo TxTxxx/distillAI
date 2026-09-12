@@ -14,7 +14,10 @@ export default function Materials({
 }) {
   const [tab, setTab] = useState<"file" | "text" | "url">("file");
   const [title, setTitle] = useState("");
-  const [text, setText] = useState("");
+  const [drafts, setDrafts] = useState({ file: "", text: "", url: "" });
+  const text = drafts[tab];
+  const setText = (value: string) =>
+    setDrafts((old) => ({ ...old, [tab]: value }));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const add = async (files?: FileList | null) => {
@@ -67,9 +70,10 @@ export default function Materials({
             key={t}
             disabled={busy}
             className={tab === t ? "selected" : ""}
+            aria-pressed={tab === t}
             onClick={() => {
               setTab(t);
-              setText("");
+              setError("");
             }}
           >
             <Icon size={16} />
@@ -129,7 +133,7 @@ export default function Materials({
         提取文字不包含对图表的视觉理解，扫描件需另行提供可读正文。链接若受跨域限制，将保留为「尚未读取」。
       </p>
       {busy && (
-        <div className="test-result">
+        <div className="test-result" role="status">
           <LoaderCircle className="spin" size={17} />
           正在读取资料，请稍候…
         </div>

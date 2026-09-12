@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, LoaderCircle, Volume2, Globe, Cpu, Trash2 } from "lucide-react";
-import type { Settings as SettingsType, ProfileKey, Provider } from "../types";
+import type {
+  Settings as SettingsType,
+  ProfileKey,
+  Provider,
+  Role,
+} from "../types";
 import { providerBases } from "../types";
 import { generate, errorMessage } from "../lib/api";
 import { AudioQueue } from "../lib/audio";
@@ -8,15 +13,27 @@ import { storage } from "../lib/storage";
 import Modal from "./Modal";
 export default function Settings({
   value,
+  roles,
   onChange,
   onClose,
 }: {
   value: SettingsType;
+  roles: [Role, Role];
   onChange: (s: SettingsType) => void;
   onClose: () => void;
 }) {
   const [section, setSection] = useState<"models" | "voice">("models");
   const [profile, setProfile] = useState<ProfileKey>("shared");
+  const [separate, setSeparate] = useState(() =>
+    value.assignments.some((a) => a !== "shared"),
+  );
+  const roleNames = [roles[0].name, roles[1].name, "私人助教"];
+  const profileNames = [
+    "共用配置",
+    `${roles[0].name}（A）专用`,
+    `${roles[1].name}（B）专用`,
+    "助教专用",
+  ];
   const [busy, setBusy] = useState("");
   const [result, setResult] = useState("");
   const controller = useRef<AbortController | undefined>(undefined);
@@ -99,6 +116,7 @@ export default function Settings({
       <div className="segmented">
         <button
           className={section === "models" ? "selected" : ""}
+          aria-pressed={section === "models"}
           onClick={() => {
             setSection("models");
             setResult("");
@@ -109,6 +127,7 @@ export default function Settings({
         </button>
         <button
           className={section === "voice" ? "selected" : ""}
+          aria-pressed={section === "voice"}
           onClick={() => {
             setSection("voice");
             setResult("");
@@ -121,20 +140,41 @@ export default function Settings({
       <div className="settings-workspace">
         {section === "models" ? (
           <>
-            <div className="profile-tabs">
-              {(["shared", "a", "b", "tutor"] as const).map((p, i) => (
-                <button
-                  key={p}
-                  className={profile === p ? "selected" : ""}
-                  onClick={() => {
-                    setProfile(p);
-                    setResult("");
-                  }}
-                >
-                  {["共用配置", "角色 A 专用", "角色 B 专用", "助教专用"][i]}
-                </button>
-              ))}
+            <div className="model-sharing">
+              <p>
+                {value.assignments.every((a) => a === "shared")
+                  ? "三位伙伴共用此模型。填写一次即可开始。"
+                  : "当前已分别分配模型，可在下方查看和调整。"}
+              </p>
+              <button
+                className="text-button"
+                aria-expanded={separate}
+                onClick={() => {
+                  setSeparate(!separate);
+                  setProfile("shared");
+                  setResult("");
+                }}
+              >
+                {separate ? "收起分别配置" : "分别配置模型"}
+              </button>
             </div>
+            {separate && (
+              <div className="profile-tabs">
+                {(["shared", "a", "b", "tutor"] as const).map((p, i) => (
+                  <button
+                    key={p}
+                    className={profile === p ? "selected" : ""}
+                    aria-pressed={profile === p}
+                    onClick={() => {
+                      setProfile(p);
+                      setResult("");
+                    }}
+                  >
+                    {profileNames[i]}
+                  </button>
+                ))}
+              </div>
+            )}
             <div className="form-grid">
               <label>
                 接口类型
@@ -215,29 +255,56 @@ export default function Settings({
               检测会发起真实 API
               请求并产生相应用量。兼容聊天接口不假定支持联网工具。浏览器直连需要服务允许跨域访问。
             </p>
-            <h3 className="form-title">为三位伙伴分配模型</h3>
-            <div className="form-grid triple">
-              {value.assignments.map((a, i) => (
-                <label key={i}>
-                  {["主角色 A", "主角色 B", "私人助教 / 笔记"][i]}
-                  <select
-                    value={a}
-                    onChange={(e) => {
-                      const assignments = [
-                        ...value.assignments,
-                      ] as SettingsType["assignments"];
-                      assignments[i] = e.target.value as ProfileKey;
-                      onChange({ ...value, assignments });
-                    }}
-                  >
-                    <option value="shared">共用配置</option>
-                    <option value="a">角色 A 专用</option>
-                    <option value="b">角色 B 专用</option>
-                    <option value="tutor">助教专用</option>
-                  </select>
-                </label>
-              ))}
-            </div>
+            {separate && (
+              <>
+                <h3 className="form-title">为三位伙伴分配模型</h3>
+                <button
+                  className="text-button"
+                  onClick={() => {
+                    onChange({
+                      ...value,
+                      assignments: ["shared", "shared", "shared"],
+                    });
+                    setProfile("shared");
+                    setResult("");
+                  }}
+                >
+                  全部使用共用配置
+                </button>
+                <div className="form-grid triple">
+                  {value.assignments.map((a, i) => (
+                    <label key={i}>
+                      {roleNames[i]}
+                      <select
+                        value={a}
+                        onChange={(e) => {
+                          const assignments = [
+                            ...value.assignments,
+                          ] as SettingsType["assignments"];
+                          assignments[i] = e.target.value as ProfileKey;
+                          onChange({ ...value, assignments });
+                        }}
+                      >
+                        {(["shared", "a", "b", "tutor"] as const).map(
+                          (key, index) => (
+                            <option key={key} value={key}>
+                              {profileNames[index]} ·{" "}
+                              {value.profiles[key].model || "未填写模型"}
+                            </option>
+                          ),
+                        )}
+                      </select>
+                      <small>
+                        {value.profiles[a].key.trim() &&
+                        value.profiles[a].model.trim()
+                          ? "信息已填写，连接以检测结果为准"
+                          : "尚未填写完整模型与密钥"}
+                      </small>
+                    </label>
+                  ))}
+                </div>
+              </>
+            )}
           </>
         ) : (
           <>
@@ -319,7 +386,7 @@ export default function Settings({
                     {["A", "B", "助"][i]}
                   </span>
                   <label>
-                    {["角色 A 音色", "角色 B 音色", "助教音色"][i]}
+                    {roleNames[i]} 音色
                     <input
                       value={v}
                       placeholder="Voice ID"
@@ -373,7 +440,7 @@ export default function Settings({
       <div className="modal-actions">
         <span className="help">配置即时保存，密钥除外</span>
         <button className="primary" onClick={onClose}>
-          完成设置
+          完成设置，返回研讨
         </button>
       </div>
     </Modal>

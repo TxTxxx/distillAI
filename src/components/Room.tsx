@@ -3,6 +3,7 @@ import {
   Suspense,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react";
@@ -35,7 +36,9 @@ import {
 import type { Settings, Source } from "../types";
 import type { ResearchEngine, EngineState } from "../lib/engine";
 import { paragraphs } from "../lib/audio";
-import { safeUrl } from "../lib/api";
+import { safeUrl, checkConfig, errorMessage } from "../lib/api";
+import { download } from "../lib/storage";
+import { appendExcerpt, hasExcerpt } from "../lib/researchHistory";
 import Markdown from "./Markdown";
 import Modal from "./Modal";
 const PdfViewer = lazy(() => import("./PdfViewer"));
@@ -117,7 +120,7 @@ export default function Room({
   }, [panelOpen, narrow]);
   const [view, setView] = useState<{ source: Source; page?: number }>();
   const [editNotes, setEditNotes] = useState(false);
-  const [follow, setFollow] = useState(true);
+  const [follow, setFollow] = useState(s.turns.length === 0);
   const scroll = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLTextAreaElement>(null);
   const closeView = useCallback(() => setView(undefined), []);
@@ -126,21 +129,61 @@ export default function Room({
   useEffect(() => {
     setAnchor(undefined);
     setQuestion("");
-    setFollow(true);
+    setFollow(s.turns.length === 0);
     setView(undefined);
     setEditNotes(false);
   }, [s.id]);
+  const readingKey = `guanyan-reading:${s.id}`;
+  useLayoutEffect(() => {
+    const element = scroll.current;
+    if (!element) return;
+    try {
+      const saved = Number(localStorage.getItem(readingKey));
+      element.scrollTop = Number.isFinite(saved) ? Math.max(0, saved) : 0;
+    } catch {
+      /* Storage is optional. */
+    }
+    const save = () => {
+      try {
+        localStorage.setItem(readingKey, String(element.scrollTop));
+      } catch {
+        /* Keep reading without persistence. */
+      }
+    };
+    element.addEventListener("scroll", save, { passive: true });
+    window.addEventListener("pagehide", save);
+    return () => {
+      save();
+      element.removeEventListener("scroll", save);
+      window.removeEventListener("pagehide", save);
+    };
+  }, [readingKey]);
+  const lastText = useRef(s.turns.at(-1)?.text);
   useEffect(() => {
-    if (follow && scroll.current)
+    const text = s.turns.at(-1)?.text;
+    if (text !== lastText.current && follow && scroll.current)
       scroll.current.scrollTop = scroll.current.scrollHeight;
-  }, [s.turns.at(-1)?.text, follow, state.status]);
+    lastText.current = text;
+  }, [s.turns.at(-1)?.text, follow]);
+  const lastTutorText = useRef(s.tutor.at(-1)?.text);
   useEffect(() => {
-    if (tutorFollow.current && tutorScroll.current)
+    const text = s.tutor.at(-1)?.text;
+    if (
+      text !== lastTutorText.current &&
+      s.tutor.length &&
+      tutorFollow.current &&
+      tutorScroll.current
+    )
       tutorScroll.current.scrollTop = tutorScroll.current.scrollHeight;
+    lastTutorText.current = text;
   }, [s.tutor.at(-1)?.text]);
   const showSource = (label: string, page?: number) => {
     const source = s.sources.find((x) => x.label === label);
     if (source) setView({ source, page });
+  };
+  const openPanel = (next: typeof tab) => {
+    setTab(next);
+    setPanelOpen(true);
   };
   const jump = (id: string) => {
     setFollow(false);
@@ -161,6 +204,12 @@ export default function Room({
   };
   const ask = () => {
     if (!question.trim() || state.tutorBusy) return;
+    try {
+      checkConfig(settings.profiles[settings.assignments[2]]);
+    } catch (error) {
+      engine.emit({ error: errorMessage(error) });
+      return;
+    }
     void engine.ask(question.trim(), anchor?.id, anchor?.quote);
     setQuestion("");
   };
@@ -218,6 +267,30 @@ export default function Room({
             </div>
           </div>
         </header>
+        <nav className="research-navigation" aria-label="会场导航">
+          <select
+            aria-label="定位发言"
+            value=""
+            disabled={!s.turns.length}
+            onChange={(e) => jump(e.target.value)}
+          >
+            <option value="">定位发言 · {s.turns.length} 次</option>
+            {s.turns.map((turn, index) => (
+              <option key={turn.id} value={turn.id}>
+                第 {Math.floor(index / 2) + 1} 轮 · {s.roles[turn.speaker].name}{" "}
+                · {turn.text.slice(0, 36)}
+              </option>
+            ))}
+          </select>
+          <button onClick={() => openPanel("sources")}>
+            <FileText size={15} />
+            资料 {s.sources.length}
+          </button>
+          <button onClick={() => openPanel("notes")}>
+            <NotebookPen size={15} />
+            笔记与收藏
+          </button>
+        </nav>
         <div
           className="discussion-scroll"
           ref={scroll}
@@ -298,7 +371,7 @@ export default function Room({
                   </span>
                   <strong>{s.roles[turn.speaker].name}</strong>
                   <span className="role-tag">
-                    {turn.speaker === 0 ? "提出与解释" : "追问与检验"}
+                    {`伙伴 ${turn.speaker === 0 ? "A" : "B"}`}
                   </span>
                   <span className="turn-round">
                     第 {Math.floor(i / 2) + 1} 轮
@@ -391,7 +464,20 @@ export default function Room({
           {state.status === "complete" && (
             <div className="discussion-end">
               <Check size={18} />
-              <span>{s.stopReason || "本场研讨告一段落"}</span>
+              <div className="discussion-wrapup">
+                <strong>{s.stopReason || "本场研讨告一段落"}</strong>
+                <p>
+                  {count} 次发言 · {s.sources.length} 份资料 ·{" "}
+                  {s.bookmarks.length} 个收藏。把认识和待验证的问题留在笔记里。
+                </p>
+                <button
+                  className="secondary"
+                  onClick={() => openPanel("notes")}
+                >
+                  <NotebookPen size={15} />
+                  {s.notes ? "回看研究笔记" : "开始整理笔记"}
+                </button>
+              </div>
               <button
                 onClick={() => {
                   engine.update((s) => {
@@ -422,7 +508,7 @@ export default function Room({
             }}
           >
             <ArrowDown size={14} />
-            回到当前发言
+            跳到最新发言
           </button>
         )}
         <div className="player">
@@ -522,11 +608,13 @@ export default function Room({
         ref={panel}
         role={panelOpen && narrow ? "dialog" : undefined}
         aria-modal={panelOpen && narrow ? true : undefined}
-        aria-label="随行笔记"
+        aria-label="研究助手"
         className={`companion ${panelOpen ? "panel-open" : ""}`}
       >
         <header className="companion-header">
-          <h2>随行笔记</h2>
+          <h2>
+            {{ tutor: "私人助教", sources: "研究资料", notes: "随行笔记" }[tab]}
+          </h2>
           <button
             className="icon-button panel-close"
             aria-label="关闭助教面板"
@@ -535,21 +623,38 @@ export default function Room({
             <X size={18} />
           </button>
         </header>
+        {state.error && (
+          <div className="panel-error" role="alert">
+            <p>{state.error}</p>
+            <button
+              className="text-button"
+              onClick={() => {
+                setPanelOpen(false);
+                onSettings();
+              }}
+            >
+              检查设置
+            </button>
+          </div>
+        )}
         <div className="panel-tabs">
           <button
             className={tab === "tutor" ? "active" : ""}
+            aria-pressed={tab === "tutor"}
             onClick={() => setTab("tutor")}
           >
             私人助教
           </button>
           <button
             className={tab === "sources" ? "active" : ""}
+            aria-pressed={tab === "sources"}
             onClick={() => setTab("sources")}
           >
             资料 <small>{s.sources.length}</small>
           </button>
           <button
             className={tab === "notes" ? "active" : ""}
+            aria-pressed={tab === "notes"}
             onClick={() => setTab("notes")}
           >
             笔记
@@ -807,19 +912,31 @@ export default function Room({
               </button>
               <button
                 className="icon-button"
-                title={editNotes ? "完成编辑" : "编辑笔记"}
+                aria-label={editNotes ? "完成编辑" : "编辑笔记"}
                 onClick={() => setEditNotes(!editNotes)}
               >
                 {editNotes ? <Check size={16} /> : <Pencil size={16} />}
               </button>
               <button
                 className="icon-button"
-                title="导出完整备份"
-                onClick={() => onExport("json")}
+                aria-label="导出学习笔记"
+                disabled={!s.notes.trim()}
+                onClick={() =>
+                  download(
+                    `guanyan-notes-${s.id}.md`,
+                    `# ${s.title}\n\n${s.notes}`,
+                    "text/markdown",
+                  )
+                }
               >
                 <Download size={16} />
               </button>
             </div>
+            <p className="notes-status">
+              {state.noteBusy
+                ? "正在根据本场讨论整理，仍可继续手写记录。"
+                : "笔记随会话保存在当前浏览器，可随时编辑或导出。"}
+            </p>
             {editNotes ? (
               <textarea
                 className="notes-editor"
@@ -843,14 +960,26 @@ export default function Room({
                 <p>
                   好的讨论，值得留下来。
                   <br />
-                  研讨结束后会自动整理笔记。
+                  可以手写认识，也可以让助教整理本场讨论。
                 </p>
+                <button
+                  className="secondary"
+                  onClick={() => setEditNotes(true)}
+                >
+                  <Pencil size={15} />
+                  写下第一条笔记
+                </button>
               </div>
             )}
             <h3 className="bookmark-heading">
               <Bookmark size={15} />
               收藏片段 <span>{s.bookmarks.length}</span>
             </h3>
+            {!s.bookmarks.length && (
+              <p className="help">
+                在发言下点击「收藏」，把值得回看的片段留在这里。
+              </p>
+            )}
             {s.bookmarks.map((id) => {
               const m =
                 s.turns.find((t) => t.id === id) ??
@@ -859,15 +988,35 @@ export default function Room({
                 <div className="bookmark-card" key={id}>
                   <button
                     onClick={() => {
-                      if (s.tutor.some((t) => t.id === id)) setTab("tutor");
+                      if (s.tutor.some((t) => t.id === id)) {
+                        tutorFollow.current = false;
+                        setTab("tutor");
+                      } else setPanelOpen(false);
                       setTimeout(() => jump(id), 30);
                     }}
                   >
-                    {m.text.slice(0, 200)}…
+                    {m.text.slice(0, 200)}
+                    {m.text.length > 200 ? "…" : ""}
                   </button>
-                  <button className="text-button" onClick={() => bookmark(id)}>
-                    取消收藏
-                  </button>
+                  <div className="bookmark-actions">
+                    <button
+                      className="text-button"
+                      disabled={hasExcerpt(s.notes, m.text)}
+                      onClick={() =>
+                        engine.update((session) => {
+                          session.notes = appendExcerpt(session.notes, m.text);
+                        })
+                      }
+                    >
+                      {hasExcerpt(s.notes, m.text) ? "已加入笔记" : "加入笔记"}
+                    </button>
+                    <button
+                      className="text-button"
+                      onClick={() => bookmark(id)}
+                    >
+                      取消收藏
+                    </button>
+                  </div>
                 </div>
               ) : null;
             })}
