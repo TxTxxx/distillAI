@@ -1,4 +1,6 @@
 import { openDB } from "idb";
+import { defaultInspirations, validateInspirations } from "./inspirations";
+import type { Inspiration } from "./inspirations";
 import { defaults } from "../types";
 import type { Session, Settings } from "../types";
 const database = () =>
@@ -10,6 +12,17 @@ const database = () =>
     },
   });
 export const storage = {
+  async inspirations(): Promise<Inspiration[]> {
+    const saved = await (await database()).get("settings", "inspirations");
+    return saved === undefined
+      ? structuredClone(defaultInspirations)
+      : validateInspirations(saved);
+  },
+  async saveInspirations(items: Inspiration[]) {
+    await (
+      await database()
+    ).put("settings", validateInspirations(items), "inspirations");
+  },
   async sessions(): Promise<Session[]> {
     return (await (await database()).getAll("sessions")).sort(
       (a: Session, b: Session) => b.updatedAt - a.updatedAt,

@@ -1,0 +1,425 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-12T21:40:12.731839+00:00",
+  "title": "Design System: 观研",
+  "extensions": {
+    "colorMeta": {
+      "ink": {
+        "role": "neutral",
+        "displayName": "墨黑",
+        "tonalRamp": [
+          "oklch(15.00% 0.01368 258.36)",
+          "oklch(26.43% 0.01368 258.36)",
+          "oklch(37.86% 0.01368 258.36)",
+          "oklch(49.29% 0.01368 258.36)",
+          "oklch(60.71% 0.01368 258.36)",
+          "oklch(72.14% 0.01368 258.36)",
+          "oklch(83.57% 0.01368 258.36)",
+          "oklch(95.00% 0.01368 258.36)"
+        ],
+        "tonalRampPurpose": "Synthesized OKLCH preview ramp; not a shipped CSS token scale."
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "石灰蓝",
+        "tonalRamp": [
+          "oklch(15.00% 0.02421 261.70)",
+          "oklch(26.43% 0.02421 261.70)",
+          "oklch(37.86% 0.02421 261.70)",
+          "oklch(49.29% 0.02421 261.70)",
+          "oklch(60.71% 0.02421 261.70)",
+          "oklch(72.14% 0.02421 261.70)",
+          "oklch(83.57% 0.02421 261.70)",
+          "oklch(95.00% 0.02421 261.70)"
+        ],
+        "tonalRampPurpose": "Synthesized OKLCH preview ramp; not a shipped CSS token scale."
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "薄雾边界",
+        "tonalRamp": [
+          "oklch(15.00% 0.01343 262.38)",
+          "oklch(26.43% 0.01343 262.38)",
+          "oklch(37.86% 0.01343 262.38)",
+          "oklch(49.29% 0.01343 262.38)",
+          "oklch(60.71% 0.01343 262.38)",
+          "oklch(72.14% 0.01343 262.38)",
+          "oklch(83.57% 0.01343 262.38)",
+          "oklch(95.00% 0.01343 262.38)"
+        ],
+        "tonalRampPurpose": "Synthesized OKLCH preview ramp; not a shipped CSS token scale."
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "冷白",
+        "tonalRamp": [
+          "oklch(15.00% 0.00286 264.54)",
+          "oklch(26.43% 0.00286 264.54)",
+          "oklch(37.86% 0.00286 264.54)",
+          "oklch(49.29% 0.00286 264.54)",
+          "oklch(60.71% 0.00286 264.54)",
+          "oklch(72.14% 0.00286 264.54)",
+          "oklch(83.57% 0.00286 264.54)",
+          "oklch(95.00% 0.00286 264.54)"
+        ],
+        "tonalRampPurpose": "Synthesized OKLCH preview ramp; not a shipped CSS token scale."
+      },
+      "blue": {
+        "role": "primary",
+        "displayName": "钴蓝",
+        "tonalRamp": [
+          "oklch(15.00% 0.26240 264.98)",
+          "oklch(26.43% 0.26240 264.98)",
+          "oklch(37.86% 0.26240 264.98)",
+          "oklch(49.29% 0.26240 264.98)",
+          "oklch(60.71% 0.26240 264.98)",
+          "oklch(72.14% 0.26240 264.98)",
+          "oklch(83.57% 0.26240 264.98)",
+          "oklch(95.00% 0.26240 264.98)"
+        ],
+        "tonalRampPurpose": "Synthesized OKLCH preview ramp; not a shipped CSS token scale."
+      },
+      "teal": {
+        "role": "secondary",
+        "displayName": "研究青绿",
+        "tonalRamp": [
+          "oklch(15.00% 0.08678 184.44)",
+          "oklch(26.43% 0.08678 184.44)",
+          "oklch(37.86% 0.08678 184.44)",
+          "oklch(49.29% 0.08678 184.44)",
+          "oklch(60.71% 0.08678 184.44)",
+          "oklch(72.14% 0.08678 184.44)",
+          "oklch(83.57% 0.08678 184.44)",
+          "oklch(95.00% 0.08678 184.44)"
+        ],
+        "tonalRampPurpose": "Synthesized OKLCH preview ramp; not a shipped CSS token scale."
+      },
+      "blue-hover": {
+        "role": "primary",
+        "displayName": "悬停深蓝",
+        "tonalRamp": [
+          "oklch(15.00% 0.19577 264.10)",
+          "oklch(26.43% 0.19577 264.10)",
+          "oklch(37.86% 0.19577 264.10)",
+          "oklch(49.29% 0.19577 264.10)",
+          "oklch(60.71% 0.19577 264.10)",
+          "oklch(72.14% 0.19577 264.10)",
+          "oklch(83.57% 0.19577 264.10)",
+          "oklch(95.00% 0.19577 264.10)"
+        ],
+        "tonalRampPurpose": "Synthesized OKLCH preview ramp; not a shipped CSS token scale."
+      },
+      "white": {
+        "role": "neutral",
+        "displayName": "白字",
+        "tonalRamp": [
+          "oklch(15.00% 0.00000 0.00)",
+          "oklch(26.43% 0.00000 0.00)",
+          "oklch(37.86% 0.00000 0.00)",
+          "oklch(49.29% 0.00000 0.00)",
+          "oklch(60.71% 0.00000 0.00)",
+          "oklch(72.14% 0.00000 0.00)",
+          "oklch(83.57% 0.00000 0.00)",
+          "oklch(95.00% 0.00000 0.00)"
+        ],
+        "tonalRampPurpose": "Synthesized OKLCH preview ramp; not a shipped CSS token scale."
+      },
+      "hover-surface": {
+        "role": "neutral",
+        "displayName": "交互雾面",
+        "tonalRamp": [
+          "oklch(15.00% 0.00743 260.73)",
+          "oklch(26.43% 0.00743 260.73)",
+          "oklch(37.86% 0.00743 260.73)",
+          "oklch(49.29% 0.00743 260.73)",
+          "oklch(60.71% 0.00743 260.73)",
+          "oklch(72.14% 0.00743 260.73)",
+          "oklch(83.57% 0.00743 260.73)",
+          "oklch(95.00% 0.00743 260.73)"
+        ],
+        "tonalRampPurpose": "Synthesized OKLCH preview ramp; not a shipped CSS token scale."
+      },
+      "selected-surface": {
+        "role": "neutral",
+        "displayName": "选中浅蓝",
+        "tonalRamp": [
+          "oklch(15.00% 0.02117 268.43)",
+          "oklch(26.43% 0.02117 268.43)",
+          "oklch(37.86% 0.02117 268.43)",
+          "oklch(49.29% 0.02117 268.43)",
+          "oklch(60.71% 0.02117 268.43)",
+          "oklch(72.14% 0.02117 268.43)",
+          "oklch(83.57% 0.02117 268.43)",
+          "oklch(95.00% 0.02117 268.43)"
+        ],
+        "tonalRampPurpose": "Synthesized OKLCH preview ramp; not a shipped CSS token scale."
+      },
+      "inset-surface": {
+        "role": "neutral",
+        "displayName": "内嵌纸面",
+        "tonalRamp": [
+          "oklch(15.00% 0.00453 258.32)",
+          "oklch(26.43% 0.00453 258.32)",
+          "oklch(37.86% 0.00453 258.32)",
+          "oklch(49.29% 0.00453 258.32)",
+          "oklch(60.71% 0.00453 258.32)",
+          "oklch(72.14% 0.00453 258.32)",
+          "oklch(83.57% 0.00453 258.32)",
+          "oklch(95.00% 0.00453 258.32)"
+        ],
+        "tonalRampPurpose": "Synthesized OKLCH preview ramp; not a shipped CSS token scale."
+      },
+      "chip-surface": {
+        "role": "neutral",
+        "displayName": "资料浅底",
+        "tonalRamp": [
+          "oklch(15.00% 0.01032 261.79)",
+          "oklch(26.43% 0.01032 261.79)",
+          "oklch(37.86% 0.01032 261.79)",
+          "oklch(49.29% 0.01032 261.79)",
+          "oklch(60.71% 0.01032 261.79)",
+          "oklch(72.14% 0.01032 261.79)",
+          "oklch(83.57% 0.01032 261.79)",
+          "oklch(95.00% 0.01032 261.79)"
+        ],
+        "tonalRampPurpose": "Synthesized OKLCH preview ramp; not a shipped CSS token scale."
+      },
+      "danger": {
+        "role": "status",
+        "displayName": "删除红",
+        "tonalRamp": [
+          "oklch(15.00% 0.15673 21.49)",
+          "oklch(26.43% 0.15673 21.49)",
+          "oklch(37.86% 0.15673 21.49)",
+          "oklch(49.29% 0.15673 21.49)",
+          "oklch(60.71% 0.15673 21.49)",
+          "oklch(72.14% 0.15673 21.49)",
+          "oklch(83.57% 0.15673 21.49)",
+          "oklch(95.00% 0.15673 21.49)"
+        ],
+        "tonalRampPurpose": "Synthesized OKLCH preview ramp; not a shipped CSS token scale."
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "短问题展示字形",
+        "purpose": "≥1301px two-line headline; horizontally compressed and masked. ResearchDisplay is the shipped Noto Sans SC 900 subset; Bitcount Grid Single is named but not supplied."
+      },
+      "body": {
+        "displayName": "连续阅读正文",
+        "purpose": "17px discussion text, 780px maximum turn width; mobile line-height 1.9."
+      }
+    },
+    "shadows": [
+      {
+        "name": "spoken-paragraph",
+        "value": "0 0 0 8px #eaf0ff",
+        "purpose": "Expand active narration highlight."
+      },
+      {
+        "name": "companion-overlay",
+        "value": "-16px 0 40px #172e5020",
+        "purpose": "Companion overlay at ≤900px; removed at ≤680px."
+      }
+    ],
+    "motion": [
+      {
+        "name": "control-state",
+        "value": "180ms ease-out",
+        "purpose": "Background and border-color transitions."
+      },
+      {
+        "name": "question-arrow",
+        "value": "200ms ease-out, translateX(calc(5 * var(--layout-unit, 1px)))",
+        "purpose": "Pointer hover on question index."
+      },
+      {
+        "name": "glyph-settle",
+        "value": "1200ms; 1 - (1 - progress)^4",
+        "purpose": "One bounded transition on headline changes; 2100 particles in two plumes; stops requesting continuous frames at completion."
+      },
+      {
+        "name": "glyph-pointer",
+        "value": "95px radius; 15px maximum displacement",
+        "purpose": "Event-driven local displacement; disabled under reduced motion."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "static final glyph state; no animations or transitions",
+        "purpose": "Canvas respects matchMedia and CSS disables animation, transition and smooth scroll."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "desktop-composition",
+        "value": "1301px",
+        "query": "(min-width: 1301px)"
+      },
+      {
+        "name": "compact-desktop",
+        "value": "1300px",
+        "query": "(max-width: 1300px)"
+      },
+      {
+        "name": "room-compact",
+        "value": "1150px",
+        "query": "(max-width: 1150px)"
+      },
+      {
+        "name": "tablet",
+        "value": "900px",
+        "query": "(max-width: 900px)"
+      },
+      {
+        "name": "mobile",
+        "value": "680px",
+        "query": "(max-width: 680px)"
+      }
+    ],
+    "provenance": {
+      "sources": [
+        "src/styles.css",
+        "src/App.tsx",
+        "src/components/Launch.tsx",
+        "src/components/QuestionLibrary.tsx",
+        "src/components/GlyphField.tsx",
+        "src/components/Room.tsx",
+        "src/components/AgentEditor.tsx",
+        "src/components/Settings.tsx"
+      ],
+      "direction": ".impeccable/chosen-direction.json",
+      "approvedComp": ".impeccable/mocks/index.png",
+      "selection": "User selected Alphabet Storm / 文字流动; user delegated index composition selection.",
+      "font": {
+        "file": "public/fonts/research-display.ttf",
+        "origin": "public/fonts/ORIGIN.md",
+        "license": "public/fonts/OFL.txt",
+        "identity": "Noto Sans SC 900 subset, self-hosted as ResearchDisplay"
+      }
+    },
+    "verification": {
+      "status": "Mechanical responsive gate passed; final independent review disposition is ship. Desktop correction and the prior two material fixes are resolved, with no observed 1440px / 1505px regressions. All build phases closed at 2026-09-12T21:41:16.896Z within the visual and implementation review scope.",
+      "responsiveGate": "Parent workflow reports PASSED and build phase advanced responsive -> review.",
+      "compSimilarity": "Fresh desktop comparison reported approximately 87%.",
+      "measurementCorrection": "Stale desktop.png.png decoder intermediate archived before rerun; reference boxes for full navigation, library actions, filters and modes corrected against the approved comp.",
+      "staleBriefs": [],
+      "accessibility": "200% text zoom, real API calls and prolonged TTS playback remain unverified; visual workflow closure does not certify them."
+    },
+    "layout": {
+      "unitCustomProperty": "--layout-unit",
+      "frontmatterToken": "spacing.desktop-layout-unit",
+      "scope": ".app:not(.reading-mode) at (min-width: 1301px)",
+      "formula": "calc(100vw / 1505)",
+      "usage": "Homepage and header geometry uses calc(N * var(--layout-unit, 1px)); 1505px approved composition unchanged, 1440px spacing proportional. Thin 1px rules unchanged.",
+      "typography": "Control/body fonts remain stable. Library question headings, descriptions and filter text use the unit; 15px baseline description is approximately 12.97px at 1301px. Hero retains its own clamp/vw type scale.",
+      "exclusions": "Reading mode does not define the unit. Existing ≤1300px and mobile layouts retain fallback/breakpoint behavior.",
+      "previewPolicy": "Snippets inherit --layout-unit when available and otherwise display the 1505px reference geometry via 1px fallback."
+    }
+  },
+  "components": [
+    {
+      "name": "主动作",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "开始与提交的基础变体。",
+      "html": "<button class=\"ds-primary\">开始研讨 →</button>",
+      "css": ".ds-primary{font-family:-apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;font-size:16px;line-height:1.4;background:var(--blue,#1847f7);color:#fff;border:1px solid var(--blue,#1847f7);border-radius:5px;min-height:44px;padding:12px 24px;cursor:pointer;transition:background-color .18s ease-out,border-color .18s ease-out}.ds-primary:hover{background:#1744bd;border-color:#1744bd}.ds-primary:focus-visible{outline:2px solid var(--blue, #1847f7);outline-offset:4px}.ds-primary:disabled{opacity:.45;cursor:not-allowed}@media(prefers-reduced-motion:reduce){.ds-primary{transition:none}}"
+    },
+    {
+      "name": "次动作",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "资料与设置辅助动作。",
+      "html": "<button class=\"ds-secondary\">添加资料</button>",
+      "css": ".ds-secondary{font-family:-apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;font-size:16px;line-height:1.4;background:transparent;color:var(--ink,#11151b);border:1px solid #abb4c3;border-radius:5px;min-height:44px;padding:12px 20px;cursor:pointer;transition:background-color .18s ease-out}.ds-secondary:hover{background:#eef1f6}.ds-secondary:focus-visible{outline:2px solid var(--blue, #1847f7);outline-offset:4px}.ds-secondary:disabled{opacity:.45;cursor:not-allowed}@media(prefers-reduced-motion:reduce){.ds-secondary{transition:none}}"
+    },
+    {
+      "name": "文字动作",
+      "kind": "button",
+      "refersTo": "button-text",
+      "description": "就地编辑与辅助入口。",
+      "html": "<button class=\"ds-text\">查看组合提示词</button>",
+      "css": ".ds-text{font-family:-apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;font-size:16px;line-height:1.4;background:transparent;color:var(--blue,#1847f7);border:0;padding:10px 12px;cursor:pointer;transition:background-color .18s ease-out}.ds-text:hover{background:#eef1f6}.ds-text:focus-visible{outline:2px solid var(--blue, #1847f7);outline-offset:4px}@media(prefers-reduced-motion:reduce){.ds-text{transition:none}}"
+    },
+    {
+      "name": "文本输入",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "有可见标签的普通配置字段。",
+      "html": "<label class=\"ds-field\">角色名称<input class=\"ds-input\" value=\"解释与构建\" /></label>",
+      "css": ".ds-field{font-family:-apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;display:grid;gap:8px;font-size:14px;color:var(--muted,#616977)}.ds-input{font-family:-apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;font-size:16px;color:var(--ink,#11151b);caret-color:var(--blue,#1847f7);border:1px solid var(--line,#d9dee7);border-radius:5px;background:transparent;padding:10px 12px;max-width:100%;transition:background-color .18s ease-out,border-color .18s ease-out}.ds-input:focus-visible{outline:2px solid var(--blue, #1847f7);outline-offset:4px}@media(prefers-reduced-motion:reduce){.ds-input{transition:none}}"
+    },
+    {
+      "name": "顶部导航",
+      "kind": "nav",
+      "refersTo": "navigation",
+      "description": "文字导航与当前页底线。",
+      "html": "<nav class=\"ds-nav\" aria-label=\"主导航\"><button class=\"ds-nav-item ds-current\" aria-current=\"page\">研究研讨</button><button class=\"ds-nav-item\">学习记录</button><button class=\"ds-nav-item\">模型与声音</button></nav>",
+      "css": ".ds-nav{font-family:-apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;display:flex;align-items:center;gap:calc(36 * var(--layout-unit, 1px));height:calc(96 * var(--layout-unit, 1px));border-bottom:1px solid var(--line,#d9dee7)}.ds-nav-item{font:inherit;font-size:17px;position:relative;height:100%;padding:0 calc(7 * var(--layout-unit, 1px));color:var(--ink,#11151b);background:transparent;border:0;cursor:pointer}.ds-nav-item:hover{background:#eef1f6}.ds-current:after{content:\"\";position:absolute;bottom:calc(23 * var(--layout-unit, 1px));height:2px;background:var(--blue,#1847f7);left:calc(7 * var(--layout-unit, 1px));right:calc(7 * var(--layout-unit, 1px))}.ds-nav-item:focus-visible{outline:2px solid var(--blue, #1847f7);outline-offset:4px}@media(min-width:1301px){.ds-nav{gap:calc(52 * var(--layout-unit, 1px))}}"
+    },
+    {
+      "name": "资料标签",
+      "kind": "chip",
+      "refersTo": "source-chip",
+      "description": "已导入资料及具名移除入口。",
+      "html": "<span class=\"ds-chip\">研究资料.pdf<button class=\"ds-remove\" aria-label=\"移除资料：研究资料.pdf\">×</button></span>",
+      "css": ".ds-chip{font-family:-apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--ink,#11151b);background:#edf1f8;padding:3px 8px;max-width:100%;overflow-wrap:anywhere}.ds-remove{font:inherit;color:inherit;background:transparent;border:0;padding:4px;cursor:pointer}.ds-remove:hover{background:#eef1f6}.ds-remove:focus-visible{outline:2px solid var(--blue, #1847f7);outline-offset:4px}"
+    },
+    {
+      "name": "研究伙伴",
+      "kind": "card",
+      "refersTo": "agent-control",
+      "description": "轻边框的可编辑角色控件。",
+      "html": "<button class=\"ds-agent\"><span class=\"ds-agent-letter\">B</span><span><strong>质疑与检验</strong><small>检验假设与证据</small></span><span aria-hidden=\"true\">↗</span></button>",
+      "css": ".ds-agent{font-family:-apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;display:flex;align-items:center;gap:calc(14 * var(--layout-unit, 1px));text-align:left;color:var(--ink,#11151b);border:1px solid var(--line,#d9dee7);border-radius:calc(5 * var(--layout-unit, 1px));background:transparent;padding:calc(14 * var(--layout-unit, 1px)) calc(15 * var(--layout-unit, 1px));cursor:pointer}.ds-agent-letter{color:var(--teal,#15796f)}.ds-agent strong{display:block;font-size:16px}.ds-agent small{display:block;font-size:12px;line-height:1.6;color:var(--muted,#616977)}.ds-agent:hover{background:#eef1f6}.ds-agent:focus-visible{outline:2px solid var(--blue, #1847f7);outline-offset:4px}"
+    },
+    {
+      "name": "问题索引条目",
+      "kind": "custom",
+      "description": "标题与简短说明的开放行，当前项采用蓝边线。",
+      "html": "<button class=\"ds-question\"><strong>模型如何理解世界？</strong><span class=\"ds-arrow\" aria-hidden=\"true\">→</span><span class=\"ds-detail\">从预测机制到研究判断。</span></button>",
+      "css": ".ds-question{font-family:-apple-system,BlinkMacSystemFont,\"PingFang SC\",\"Microsoft YaHei\",sans-serif;display:grid;grid-template-columns:minmax(0,1fr) calc(24 * var(--layout-unit, 1px));gap:calc(14 * var(--layout-unit, 1px)) calc(20 * var(--layout-unit, 1px));text-align:left;color:var(--ink,#11151b);border:0;border-bottom:1px solid var(--blue,#1847f7);padding:calc(23 * var(--layout-unit, 1px)) 0 calc(27 * var(--layout-unit, 1px));background:transparent;width:100%;cursor:pointer}.ds-question strong{font-size:calc(26 * var(--layout-unit, 1px));font-weight:750;line-height:1.5;letter-spacing:-.025em}.ds-detail{grid-column:1;font-size:calc(17 * var(--layout-unit, 1px));color:var(--muted,#616977);line-height:1.65}.ds-arrow{transition:transform .2s ease-out}.ds-question:hover .ds-arrow{transform:translateX(calc(5 * var(--layout-unit, 1px)));color:var(--blue,#1847f7)}.ds-question:focus-visible{outline:2px solid var(--blue, #1847f7);outline-offset:4px}@media(prefers-reduced-motion:reduce){.ds-arrow{transition:none}}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Alphabet Storm · 文字流动",
+    "overview": "冷白纸面、重黑中文与有方向的文字碎片共同构成观研的视觉世界。问题具有强烈的字形尺度，钴蓝让操作明确，青绿区分质疑与检验的研究角色。界面强调真实可编辑的研究问题和清楚的工作边界。\n\n进入讨论后，视觉密度转为适合长文的连续阅读流。文字风暴是提问表面的局部表达；输入框、操作和正文保持稳定。资料、模型、角色与私人助教沿用同一套细边界和轻微圆角。",
+    "keyCharacteristics": [
+      "冷白底、墨黑文字、钴蓝动作、青绿角色。",
+      "超大中文标题与细分隔线形成尺度对比。",
+      "两束文字碎片连接问题字形；动效有限时长。",
+      "扁平工作面、舒展正文、少量状态底色。"
+    ],
+    "rules": [
+      {
+        "name": "The Role Color Rule",
+        "body": "角色 A 沿用钴蓝，角色 B 沿用青绿；保留角色名字和职责，不能只靠颜色辨认。",
+        "section": "colors"
+      },
+      {
+        "name": "The Stable Reading Rule",
+        "body": "研究正文与真实输入保持自然文字布局；超大、压缩、遮罩字形只服务于短问题的展示层。",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat Worksurface Rule",
+        "body": "普通工作面依赖边线和留白；只有覆盖面板和朗读状态使用现有阴影词汇。",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** 保持冷白工作面、墨黑标题、钴蓝动作和青绿角色 B 的职责分工。",
+      "**Do** 让真实输入、长题目、正文、公式和代码保持可读且可操作。",
+      "**Do** 在题目切换后使用一次有界文字流，并尊重减少动态效果偏好。",
+      "**Do** 为颜色、图标与状态提供名称、文字和键盘焦点。",
+      "**Do** 将响应式实际代码、批准构图和测试结论分别记录。"
+    ],
+    "donts": [
+      "**Don't** 将研究首页恢复为侧边栏、营销英雄区和重复卡片的组合。",
+      "**Don't** 为普通阅读面增加通用投影、装饰插画或持续循环的文字风暴。",
+      "**Don't** 对自定义长问题套用两行超大标题的压缩与遮罩。",
+      "**Don't** 把生成构图中的虚构账户、历史或不支持的材料类型带入产品。",
+      "**Don't** 把视觉相似度、演示内容或本文视为响应式与真实 API 调用通过的证明。"
+    ]
+  }
+}

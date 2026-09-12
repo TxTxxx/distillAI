@@ -7,3 +7,9 @@ dist/
 output/
 .playwright-cli/
 .sites-runtime/
+
+# Local design renders and review runtime; keep the durable design contract.
+.impeccable/*
+!.impeccable/design.json
+!.impeccable/chosen-direction.json
+!.impeccable/surfaces/

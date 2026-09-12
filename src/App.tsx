@@ -1,716 +1,201 @@
+import { lazy, Suspense } from "react";
 import {
-  lazy,
-  Suspense,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from "react";
-import {
-  ArrowUpRight,
-  AudioLines,
+  ArrowLeft,
   BookOpen,
-  ChevronRight,
-  Cpu,
-  FlaskConical,
-  GraduationCap,
-  Layers3,
-  MessageCircle,
+  Download,
+  LoaderCircle,
   Plus,
   Settings2,
-  PanelLeftClose,
-  PanelLeftOpen,
-  Globe,
-  Headphones,
-  FileText,
-  Play,
-  Upload,
   Trash2,
+  Upload,
   X,
-  LoaderCircle,
-  Download,
 } from "lucide-react";
-import { defaults, rolePresets } from "./types";
-import type { Role, Session, Settings as SettingsType, Source } from "./types";
-import { ResearchEngine } from "./lib/engine";
-import { storage, backup, restore, markdown, download } from "./lib/storage";
-import { errorMessage } from "./lib/api";
+import { useResearchApp } from "./lib/useResearchApp";
+import { defaults } from "./types";
+import { backup, download, markdown } from "./lib/storage";
 import { exampleSession } from "./lib/demo";
+import Launch from "./components/Launch";
 import Room from "./components/Room";
 import Modal from "./components/Modal";
 import AgentEditor from "./components/AgentEditor";
-import ResearchArt from "./components/ResearchArt";
 const Settings = lazy(() => import("./components/Settings"));
 const Materials = lazy(() => import("./components/Materials"));
-const topics = [
-  {
-    tag: "World Model",
-    question: "想象中的世界，如何指导真实行动？",
-    detail: "模型误差与长期规划的边界",
-    prompt:
-      "世界模型的预测误差如何影响长期规划？以 Dreamer 类方法为例，讨论模型偏差、想象轨迹长度和策略优化之间的取舍。",
-    Icon: Cpu,
-  },
-  {
-    tag: "VLA",
-    question: "理解了语言，就能学会行动吗？",
-    detail: "从语义理解到动作泛化",
-    prompt:
-      "VLA 如何把视觉语言表征转化为可泛化的动作？深入讨论动作表示、数据分布、连续动作生成和跨场景泛化的实验设计。",
-    Icon: Layers3,
-  },
-  {
-    tag: "World Action Model",
-    question: "预测世界与生成动作，能否相互成就？",
-    detail: "联合建模的收益与代价",
-    prompt:
-      "World Action Model 中，联合预测世界与动作在什么条件下能帮助机器人泛化？讨论共享表征、监督信号、消融与等计算量对照。",
-    Icon: FlaskConical,
-  },
-];
+
 export default function App() {
-  const [engine] = useState(
-    () => new ResearchEngine(structuredClone(defaults)),
-  );
-  const state = useSyncExternalStore(engine.subscribe, engine.getSnapshot);
-  const s = state.session;
-  const [settings, setSettings] = useState<SettingsType>(
-    structuredClone(defaults),
-  );
-  const [history, setHistory] = useState<Session[]>([]);
-  const [loaded, setLoaded] = useState(false);
-  const [collapsed, setCollapsed] = useState(false);
-  const [mobileNav, setMobileNav] = useState(false);
-  const [modal, setModal] = useState<
-    "settings" | "materials" | "roles" | "history" | null
-  >(null);
-  const [topic, setTopic] = useState("");
-  const [mode, setMode] = useState<Session["mode"]>("research");
-  const [rounds, setRounds] = useState(12);
-  const [autoStop, setAutoStop] = useState(true);
-  const [editorAgent, setEditorAgent] = useState(0);
-  const [search, setSearch] = useState(true);
-  const [voice, setVoice] = useState(false);
-  const [roles, setRoles] = useState<[Role, Role]>(
-    structuredClone(rolePresets.research),
-  );
-  const [sources, setSources] = useState<Source[]>([]);
-  const [deleteId, setDeleteId] = useState<string>();
-  const importRef = useRef<HTMLInputElement>(null);
-  useEffect(() => {
-    if (!state.notice) return;
-    const timer = setTimeout(() => engine.emit({ notice: "" }), 6000);
-    return () => clearTimeout(timer);
-  }, [state.notice, engine]);
-  const close = useCallback(() => setModal(null), []);
-  useEffect(() => {
-    let cancelled = false;
-    void Promise.all([storage.sessions(), storage.settings()])
-      .then(([sessions, config]) => {
-        if (cancelled) return;
-        setHistory(sessions);
-        setSettings(config);
-        setRoles(structuredClone(config.prompts.research));
-        engine.settings = config;
-        const id = location.hash.match(/^#\/s\/(.+)$/)?.[1];
-        if (id) engine.select(sessions.find((s) => s.id === id));
-        setLoaded(true);
-      })
-      .catch(() => {
-        engine.emit({
-          notice: "无法使用本机存储。你仍可研讨，但请及时导出记录。",
-        });
-        setLoaded(true);
-      });
-    const checkpoint = setInterval(() => engine.checkpoint(), 5000);
-    const leave = () => {
-      engine.checkpoint();
-      void engine.flush();
-    };
-    window.addEventListener("pagehide", leave);
-    return () => {
-      cancelled = true;
-      clearInterval(checkpoint);
-      window.removeEventListener("pagehide", leave);
-    };
-  }, [engine]);
-  useEffect(() => {
-    engine.settings = settings;
-    engine.audio.setSpeed(settings.speed);
-    engine.replayAudio.setSpeed(settings.speed);
-    if (loaded)
-      void storage
-        .saveSettings(settings)
-        .catch(() =>
-          engine.emit({ notice: "无法保存配置，请检查浏览器本机存储。" }),
-        );
-  }, [settings, engine, loaded]);
-  useEffect(() => {
-    if (s)
-      setHistory((old) =>
-        [s, ...old.filter((x) => x.id !== s.id)].sort(
-          (a, b) => b.updatedAt - a.updatedAt,
-        ),
-      );
-  }, [s]);
-  useEffect(() => {
-    const changed = () => {
-      const id = location.hash.match(/^#\/s\/(.+)$/)?.[1];
-      if (id === engine.state.session?.id) return;
-      void engine
-        .flush()
-        .then(() => storage.sessions())
-        .then((all) => {
-          setHistory(all);
-          engine.select(all.find((x) => x.id === id));
-        })
-        .catch(() => {});
-    };
-    window.addEventListener("hashchange", changed);
-    return () => window.removeEventListener("hashchange", changed);
-  }, [engine]);
-  const openSession = (session: Session) => {
-    engine.select(session);
-    location.hash = `/s/${session.id}`;
-    setMobileNav(false);
-    setModal(null);
-  };
-  const newRoom = () => {
-    engine.select();
-    location.hash = "/";
-    setMobileNav(false);
-    setTopic("");
-    setSources([]);
-  };
-  const enter = () => {
-    if (!topic.trim()) return;
-    const session = engine.create(topic.trim(), mode);
-    engine.update((s) => {
-      s.rounds = rounds;
-      s.autoStop = autoStop;
-      s.sharedPrompt = settings.prompts.shared;
-      s.tutorPrompt = settings.prompts.tutor;
-      s.search = search;
-      s.voice = voice;
-      s.sources = sources;
-      s.roles = structuredClone(roles);
-    });
-    location.hash = `/s/${session.id}`;
-    void engine.start();
-  };
-  const addSources = (added: Source[]) => {
-    if (s) engine.addSources(added);
-    else
-      setSources((old) => [
-        ...old,
-        ...added.map((x, i) => ({ ...x, label: `S${old.length + i + 1}` })),
-      ]);
-  };
-  const handleImport = async (file?: File) => {
-    if (!file) return;
-    try {
-      if (file.size > 40 * 1024 * 1024) throw new Error("备份文件超过 40 MB。");
-      const restored = restore(await file.text());
-      await storage.save(restored);
-      openSession(restored);
-    } catch (e) {
-      engine.emit({ error: errorMessage(e) });
-    } finally {
-      if (importRef.current) importRef.current.value = "";
-    }
-  };
-  const doDelete = async () => {
-    if (!deleteId) return;
-    await engine.flush();
-    if (s?.id === deleteId) newRoom();
-    try {
-      await storage.remove(deleteId);
-      setHistory((h) => h.filter((x) => x.id !== deleteId));
-      setDeleteId(undefined);
-    } catch (e) {
-      engine.emit({ error: errorMessage(e) });
-    }
-  };
+  const app = useResearchApp();
+  const { engine, state, s } = app;
   return (
-    <div
-      className={`shell ${collapsed ? "nav-collapsed" : ""} ${s ? "in-room" : ""}`}
-    >
-      <input
-        className="hidden"
-        ref={importRef}
-        type="file"
-        accept=".json"
-        onChange={(e) => void handleImport(e.target.files?.[0])}
-      />
-      {mobileNav && (
+    <div className={`app ${s ? "reading-mode" : ""}`}>
+      <header className="app-header">
         <button
-          className="nav-backdrop"
-          aria-label="关闭导航"
-          onClick={() => setMobileNav(false)}
-        />
-      )}
-      <aside className={`sidebar ${mobileNav ? "mobile-open" : ""}`}>
-        <button className="brand" onClick={newRoom} aria-label="观研首页">
-          <span className="brand-mark">
-            <BookOpen size={22} />
-          </span>
-          <strong>
-            观研<span>GUANYAN</span>
-          </strong>
-        </button>
-        <button
-          className="new-session"
-          aria-label="开启一场研讨"
-          onClick={newRoom}
+          className="wordmark"
+          aria-label="观研首页"
+          onClick={app.newRoom}
         >
-          <Plus size={18} />
-          <span>开启一场研讨</span>
+          观研
         </button>
-        <div className="nav-caption">我的空间</div>
-        <button
-          className={`nav-item ${!modal ? "active" : ""}`}
-          aria-label="研究研讨室"
-          onClick={() => setModal(null)}
-        >
-          <Layers3 size={18} />
-          <span>研究研讨室</span>
-        </button>
-        <button
-          className="nav-item"
-          aria-label="学习记录"
-          onClick={() => setModal("history")}
-        >
-          <BookOpen size={18} />
-          <span>学习记录</span>
-          <small>{history.length || ""}</small>
-        </button>
-        <button
-          className="nav-item"
-          aria-label="恢复会话备份"
-          onClick={() => importRef.current?.click()}
-        >
-          <Upload size={18} />
-          <span>恢复会话备份</span>
-        </button>
-        <div className="history-list">
-          <div className="nav-caption">最近研讨</div>
-          {history.slice(0, 7).map((item) => (
-            <button
-              className={`history-item ${s?.id === item.id ? "current" : ""}`}
-              key={item.id}
-              onClick={() => openSession(item)}
-            >
-              <MessageCircle size={14} />
-              <span>{item.title}</span>
-              {item.demo && <small>示例</small>}
-            </button>
-          ))}
-          {!history.length && (
-            <p className="history-empty">每一次追问，都会留在这里。</p>
-          )}
-        </div>
-        <div className="sidebar-bottom">
-          <div className="local-label">
-            <span />
-            只属于你的学习空间
-          </div>
+        <nav aria-label="主导航">
           <button
-            className="nav-item"
-            aria-label="模型与声音"
-            onClick={() => setModal("settings")}
+            aria-label="新的研讨"
+            className={!s && !app.modal ? "active" : ""}
+            onClick={app.newRoom}
           >
-            <Settings2 size={18} />
+            <Plus size={17} />
+            <span>新的研讨</span>
+          </button>
+          <button
+            aria-label="研讨记录"
+            className={app.modal === "history" ? "active" : ""}
+            onClick={() => app.setModal("history")}
+          >
+            <BookOpen size={17} />
+            <span>研讨记录</span>
+          </button>
+          <button
+            aria-label="模型与声音"
+            onClick={() => app.setModal("settings")}
+          >
+            <Settings2 size={17} />
             <span>模型与声音</span>
           </button>
+        </nav>
+      </header>
+      <input
+        className="hidden"
+        type="file"
+        accept=".json"
+        ref={app.importRef}
+        onChange={(e) => void app.handleImport(e.target.files?.[0])}
+      />
+      {(state.error || state.notice) && (
+        <div
+          className={`app-notice ${state.error ? "error" : ""}`}
+          role={state.error ? "alert" : "status"}
+        >
+          <span>{state.error || state.notice}</span>
+          {state.error && (
+            <button onClick={() => app.setModal("settings")}>检查设置</button>
+          )}
           <button
-            className="collapse-button"
-            aria-label={collapsed ? "展开导航" : "收起导航"}
-            onClick={() => setCollapsed(!collapsed)}
+            className="icon-button"
+            aria-label="关闭提示"
+            onClick={() => engine.emit({ error: "", notice: "" })}
           >
-            {collapsed ? (
-              <PanelLeftOpen size={17} />
-            ) : (
-              <PanelLeftClose size={17} />
-            )}
-            <span>收起侧栏</span>
+            <X size={16} />
           </button>
         </div>
-      </aside>
-      <div className="workspace">
-        <header className="topbar">
-          <div className="breadcrumb">
-            <button
-              className="icon-button mobile-only"
-              aria-label="打开导航"
-              onClick={() => setMobileNav(true)}
-            >
-              <BookOpen size={20} />
-            </button>
-            <button onClick={newRoom}>我的空间</button>
-            <ChevronRight size={14} />
-            <span>
-              {s
-                ? s.mode === "research"
-                  ? "研究研讨"
-                  : "高阶研究面试"
-                : "新的研讨"}
-            </span>
-          </div>
-          <div className="topbar-right">
-            <button
-              className="connection-pill"
-              onClick={() => setModal("settings")}
-            >
-              <span
-                className={
-                  settings.profiles[settings.assignments[0]].key
-                    ? "connected"
-                    : ""
-                }
-              />
-              {settings.profiles[settings.assignments[0]].key
-                ? "已配置模型"
-                : "连接你的模型"}
-            </button>
-            <span className="profile">研</span>
-          </div>
-        </header>
-        {(state.error || state.notice) && (
-          <div
-            className={`global-message ${state.error ? "is-error" : ""}`}
-            role={state.error ? "alert" : "status"}
-          >
-            <span>{state.error || state.notice}</span>
-            <div>
-              {state.error && (
-                <button onClick={() => setModal("settings")}>检查设置</button>
-              )}
-              <button
-                className="icon-button"
-                aria-label="关闭提示"
-                onClick={() => engine.emit({ error: "", notice: "" })}
-              >
-                <X size={16} />
-              </button>
-            </div>
-          </div>
-        )}
-        {s ? (
-          <Room
-            engine={engine}
-            state={state}
-            settings={settings}
-            setSettings={setSettings}
-            onMaterials={() => setModal("materials")}
-            onRoles={() => setModal("roles")}
-            onSettings={() => setModal("settings")}
-            onExport={(type) =>
-              download(
-                `guanyan-${s.id}.${type}`,
-                type === "json" ? backup(s) : markdown(s),
-                type === "json" ? "application/json" : "text/markdown",
-              )
-            }
-          />
-        ) : (
-          <>
-            <main className="launch">
-              <div className="launch-heading">
-                <div>
-                  <div className="eyebrow">
-                    <span /> YOUR PERSONAL RESEARCH STUDIO
-                  </div>
-                  <h1>
-                    把一个问题，
-                    <br />
-                    <span>讨论透。</span>
-                  </h1>
-                  <p className="intro">
-                    让 AI 交锋，让理解发生。
-                    <br />
-                    在解释与追问之间，形成自己的研究判断。
-                  </p>
-                </div>
-                <div className="hero-art">
-                  <ResearchArt />
-                  <span className="art-caption">
-                    THINK · QUESTION · UNDERSTAND
-                  </span>
-                  <div className="art-badge">
-                    ∞<small>思考，没有单一视角</small>
-                  </div>
-                </div>
-              </div>
-              <section className="composer">
-                <div className="mode-tabs">
-                  <button
-                    className={mode === "research" ? "selected" : ""}
-                    onClick={() => {
-                      setMode("research");
-                      setRoles(structuredClone(settings.prompts.research));
-                    }}
-                  >
-                    <FlaskConical size={16} />
-                    研究研讨
-                  </button>
-                  <button
-                    className={mode === "interview" ? "selected" : ""}
-                    onClick={() => {
-                      setMode("interview");
-                      setRoles(structuredClone(settings.prompts.interview));
-                    }}
-                  >
-                    <GraduationCap size={17} />
-                    高阶研究面试
-                  </button>
-                </div>
-                <textarea
-                  value={topic}
-                  onChange={(e) => setTopic(e.target.value)}
-                  placeholder="提出你的研究问题，或从下方选择一个灵感…"
-                  aria-label="研究主题"
-                  onKeyDown={(e) => {
-                    if ((e.metaKey || e.ctrlKey) && e.key === "Enter") enter();
-                  }}
-                />
-                {sources.length > 0 && (
-                  <div className="source-chips">
-                    {sources.map((x) => (
-                      <span key={x.id}>
-                        <FileText size={13} />
-                        {x.title}
-                        <button
-                          aria-label={`移除${x.title}`}
-                          onClick={() =>
-                            setSources((a) =>
-                              a
-                                .filter((s) => s.id !== x.id)
-                                .map((s, i) => ({ ...s, label: `S${i + 1}` })),
-                            )
-                          }
-                        >
-                          <X size={12} />
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                )}
-                <div className="composer-footer">
-                  <button
-                    className="text-button"
-                    onClick={() => setModal("materials")}
-                  >
-                    <Plus size={17} />
-                    加入论文或资料
-                  </button>
-                  <button
-                    className="primary"
-                    disabled={!topic.trim() || !loaded}
-                    onClick={enter}
-                  >
-                    开始探索 <ArrowUpRight size={17} />
-                  </button>
-                </div>
-              </section>
-              <div className="launch-options">
-                <label className="switch-label">
-                  <input
-                    type="checkbox"
-                    checked={search}
-                    onChange={(e) => setSearch(e.target.checked)}
-                  />
-                  <Globe size={14} />
-                  联网查找资料
-                </label>
-                <label className="switch-label">
-                  <input
-                    type="checkbox"
-                    checked={voice}
-                    onChange={(e) => setVoice(e.target.checked)}
-                  />
-                  <Headphones size={14} />
-                  双角色听讲
-                </label>
-                <label
-                  className="stop-mode"
-                  title="至少讨论 3 轮后，由助教模型评估机制、证据、质疑与下一步是否充分。每轮增加一次短评估调用，始终遵守最大轮数。"
-                >
-                  推进方式
-                  <select
-                    aria-label="推进方式"
-                    value={autoStop ? "auto" : "fixed"}
-                    onChange={(e) => setAutoStop(e.target.value === "auto")}
-                  >
-                    <option value="auto">自主收束</option>
-                    <option value="fixed">固定轮数</option>
-                  </select>
-                </label>
-                <label className="rounds-label">
-                  {autoStop ? "最多" : "固定"}
-                  <select
-                    aria-label={autoStop ? "最大讨论轮数" : "固定讨论轮数"}
-                    value={rounds}
-                    onChange={(e) => setRounds(Number(e.target.value))}
-                  >
-                    {[4, 8, 12, 20, 30].map((n) => (
-                      <option key={n} value={n}>
-                        {n} 轮
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <button
-                  className="text-button"
-                  onClick={() => setModal("roles")}
-                >
-                  <Settings2 size={14} />
-                  Agent 配置
-                </button>
-              </div>
-              <div className="collaborators">
-                <div className="collaborators-label">
-                  <span className="micro-label">THE ROUNDTABLE</span>
-                  <strong>你的思考搭档</strong>
-                </div>
-                {[roles[0], roles[1], { name: "私人助教", duty: "" }].map(
-                  (role, i) => (
-                    <button
-                      key={i}
-                      onClick={() => {
-                        setEditorAgent(i);
-                        setModal("roles");
-                      }}
-                      className="collaborator"
-                    >
-                      <span className={`agent-index agent-${i}`}>
-                        {["A", "B", "T"][i]}
-                      </span>
-                      <span>
-                        <strong>{role.name}</strong>
-                        <small>{["构建观点", "追问证据", "随时解惑"][i]}</small>
-                      </span>
-                      <ArrowUpRight size={14} />
-                    </button>
-                  ),
-                )}
-              </div>
-              <div className="section-heading">
-                <h2>
-                  从好奇心出发<span>EXPLORE A DIRECTION</span>
-                </h2>
-                <span>01 — 03</span>
-              </div>
-              <div className="topic-grid">
-                {topics.map(({ tag, question, detail, prompt }, i) => (
-                  <button
-                    className="topic-card"
-                    key={tag}
-                    onClick={() => setTopic(prompt)}
-                  >
-                    <div className="topic-top">
-                      <span>{tag}</span>
-                      <span>0{i + 1}</span>
-                    </div>
-                    <ResearchArt variant={i} />
-                    <div className="topic-card-content">
-                      <h3>{question}</h3>
-                      <p>{detail}</p>
-                      <ArrowUpRight className="topic-arrow" size={18} />
-                    </div>
-                  </button>
-                ))}
-              </div>
-              <div className="launch-foot">
-                <span>
-                  <AudioLines size={16} />
-                  读得深入，也听得明白
-                </span>
-                <span>
-                  <MessageCircle size={16} />
-                  随时向私人助教追问
-                </span>
-                <button onClick={() => openSession(exampleSession())}>
-                  <Play size={14} />
-                  查看标注示例
-                </button>
-              </div>
-            </main>
-            <footer className="site-foot">
-              <span>观研 · 保持好奇，保持追问</span>
-              <span>你的学习记录保存在本机</span>
-            </footer>
-          </>
-        )}
-      </div>
+      )}
+      {s ? (
+        <Room
+          engine={engine}
+          state={state}
+          settings={app.settings}
+          setSettings={app.setSettings}
+          onMaterials={() => app.setModal("materials")}
+          onRoles={() => app.setModal("roles")}
+          onSettings={() => app.setModal("settings")}
+          onExport={(type) =>
+            download(
+              `guanyan-${s.id}.${type}`,
+              type === "json" ? backup(s) : markdown(s),
+              type === "json" ? "application/json" : "text/markdown",
+            )
+          }
+        />
+      ) : (
+        <Launch app={app} />
+      )}
       <Suspense
         fallback={
-          <div className="loading-overlay">
+          <div className="loading-overlay" role="status">
             <LoaderCircle className="spin" />
             正在准备…
           </div>
         }
       >
-        {modal === "settings" && (
-          <Settings value={settings} onChange={setSettings} onClose={close} />
-        )}{" "}
-        {modal === "materials" && (
-          <Materials onAdd={addSources} onClose={close} />
+        {app.modal === "settings" && (
+          <Settings
+            value={app.settings}
+            onChange={app.setSettings}
+            onClose={app.close}
+          />
+        )}
+        {app.modal === "materials" && (
+          <Materials onAdd={app.addSources} onClose={app.close} />
         )}
       </Suspense>
-      {modal === "roles" && (
+      {app.modal === "roles" && (
         <AgentEditor
-          initialAgent={editorAgent}
-          roles={s?.roles ?? roles}
+          initialAgent={app.editorAgent}
+          roles={s?.roles ?? app.roles}
           shared={
             s
               ? (s.sharedPrompt ?? defaults.prompts.shared)
-              : settings.prompts.shared
+              : app.settings.prompts.shared
           }
           tutor={
             s
               ? (s.tutorPrompt ?? defaults.prompts.tutor)
-              : settings.prompts.tutor
+              : app.settings.prompts.tutor
           }
-          mode={s?.mode ?? mode}
+          mode={s?.mode ?? app.mode}
           inSession={!!s}
-          onClose={close}
-          onChange={(next, shared, tutor) => {
+          onClose={app.close}
+          onChange={(roles, shared, tutor) => {
             if (s)
-              engine.update((s) => {
-                s.roles = next;
-                s.sharedPrompt = shared;
-                s.tutorPrompt = tutor;
+              engine.update((current) => {
+                current.roles = roles;
+                current.sharedPrompt = shared;
+                current.tutorPrompt = tutor;
               });
             else {
-              setRoles(next);
-              setSettings((c) => ({
-                ...c,
-                prompts: { ...c.prompts, [mode]: next, shared, tutor },
+              app.setRoles(roles);
+              app.setSettings((current) => ({
+                ...current,
+                prompts: {
+                  ...current.prompts,
+                  [app.mode]: roles,
+                  shared,
+                  tutor,
+                },
               }));
             }
           }}
         />
       )}
-      {modal === "history" && (
-        <Modal title="你的学习记录" onClose={close} wide>
-          {history.length ? (
-            history.map((item) => (
+      {app.modal === "history" && (
+        <Modal title="研讨记录" onClose={app.close} wide>
+          <div className="history-actions">
+            <button
+              className="secondary"
+              onClick={() => app.importRef.current?.click()}
+            >
+              <Upload size={16} />
+              恢复会话备份
+            </button>
+            <button
+              className="text-button"
+              onClick={() => app.openSession(exampleSession())}
+            >
+              查看标注示例
+            </button>
+          </div>
+          {app.history.length ? (
+            app.history.map((item) => (
               <div className="history-row" key={item.id}>
-                <button onClick={() => openSession(item)}>
-                  <BookOpen size={18} />
+                <button onClick={() => app.openSession(item)}>
                   <span>
                     <strong>{item.title}</strong>
                     <small>
                       {new Date(item.updatedAt).toLocaleDateString("zh-CN")} ·{" "}
                       {item.turns.filter((t) => t.status === "complete").length}{" "}
-                      次发言 {item.demo ? "· 示例" : ""}
+                      次发言{item.demo ? " · 示例" : ""}
                     </small>
                   </span>
                 </button>
                 <button
                   className="icon-button"
-                  title="导出备份"
+                  aria-label={`导出会话：${item.title}`}
                   onClick={() =>
                     download(
                       `guanyan-${item.id}.json`,
@@ -719,39 +204,43 @@ export default function App() {
                     )
                   }
                 >
-                  <Download size={16} />
+                  <Download size={17} />
                 </button>
                 <button
                   className="icon-button"
-                  title="删除会话"
-                  onClick={() => setDeleteId(item.id)}
+                  aria-label={`删除会话：${item.title}`}
+                  onClick={() => app.setDeleteId(item.id)}
                 >
-                  <Trash2 size={16} />
+                  <Trash2 size={17} />
                 </button>
               </div>
             ))
           ) : (
             <div className="empty-state">
-              <BookOpen size={30} />
-              <h3>你的第一场研讨，值得记下来。</h3>
-              <p>开始讨论后，记录会自动保存在这里。</p>
+              <h3>第一场研讨，从一个问题开始。</h3>
+              <p>讨论会自动保存在这里。</p>
+              <button className="primary" onClick={app.close}>
+                <ArrowLeft size={16} />
+                回到研究问题
+              </button>
             </div>
           )}
         </Modal>
       )}
-      {deleteId && (
-        <Modal title="删除这场研讨？" onClose={() => setDeleteId(undefined)}>
-          <p>
-            本机的对话、笔记和相关缓存将被删除。可以先在学习记录中导出备份。
-          </p>
+      {app.deleteId && (
+        <Modal
+          title="删除这场研讨？"
+          onClose={() => app.setDeleteId(undefined)}
+        >
+          <p>本机对话、笔记和相关缓存将被删除。你可以先导出备份。</p>
           <div className="modal-actions">
             <button
               className="secondary"
-              onClick={() => setDeleteId(undefined)}
+              onClick={() => app.setDeleteId(undefined)}
             >
               保留
             </button>
-            <button className="danger" onClick={() => void doDelete()}>
+            <button className="danger" onClick={() => void app.doDelete()}>
               删除研讨
             </button>
           </div>

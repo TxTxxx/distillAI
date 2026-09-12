@@ -44,16 +44,11 @@ export default function AgentEditor({
       );
   };
   return (
-    <Modal title="设计你的研究伙伴" onClose={onClose} wide>
+    <Modal title="定义研究伙伴" onClose={onClose} wide>
       <div className="agent-editor">
-        <div className="editor-intro">
-          <span className="micro-label">AGENT STUDIO</span>
-          <p>
-            好的讨论，始于不同的视角。
-            <br />
-            定义他们如何思考、追问与解释。
-          </p>
-        </div>
+        <p className="editor-intro">
+          不同的视角，决定讨论的深度。编辑每位伙伴的职责与系统提示词。
+        </p>
         <div className="agent-editor-layout">
           <nav className="agent-tabs" aria-label="选择 Agent">
             {[roles[0].name, roles[1].name, "私人助教", "共同规范"].map(

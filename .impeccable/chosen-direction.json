@@ -1,0 +1,11 @@
+{
+  "optionId": "dream-surreal-impossible-worlds-alphabet-storm",
+  "label": "文字流动",
+  "buildPath": "comp",
+  "buildPathFlipped": false,
+  "source": "user selection on aa0028ea",
+  "seed": "f409c59e",
+  "composition": "index",
+  "approvedComp": ".impeccable/mocks/index.png",
+  "rebuild": "Replace frontend structure, components and styling from scratch; reuse service/domain logic only."
+}

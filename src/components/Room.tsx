@@ -25,7 +25,7 @@ import {
   Plus,
   Send,
   Settings2,
-  Sparkles,
+  NotebookPen,
   Square,
   Volume2,
   X,
@@ -63,6 +63,58 @@ export default function Room({
   const [question, setQuestion] = useState("");
   const [anchor, setAnchor] = useState<{ id: string; quote: string }>();
   const [panelOpen, setPanelOpen] = useState(false);
+  const [narrow, setNarrow] = useState(
+    () => matchMedia("(max-width: 900px)").matches,
+  );
+  const panel = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const media = matchMedia("(max-width: 900px)");
+    const sync = () => setNarrow(media.matches);
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
+  }, []);
+  useEffect(() => {
+    if (!panelOpen || !narrow || !panel.current) return;
+    const previous = document.activeElement as HTMLElement | null;
+    const background = [
+      document.querySelector<HTMLElement>(".app-header"),
+      document.querySelector<HTMLElement>(".main-stage"),
+    ];
+    background.forEach((element) => {
+      if (element) element.inert = true;
+    });
+    const focusables = () =>
+      Array.from(
+        panel.current!.querySelectorAll<HTMLElement>(
+          "button:not(:disabled),textarea:not(:disabled),input:not(:disabled),select:not(:disabled),a[href]",
+        ),
+      ).filter((element) => element.getClientRects().length);
+    focusables()[0]?.focus();
+    const keydown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setPanelOpen(false);
+      }
+      if (event.key !== "Tab") return;
+      const items = focusables();
+      const target = event.shiftKey ? items.at(-1) : items[0];
+      if (
+        (event.shiftKey && document.activeElement === items[0]) ||
+        (!event.shiftKey && document.activeElement === items.at(-1))
+      ) {
+        event.preventDefault();
+        target?.focus();
+      }
+    };
+    document.addEventListener("keydown", keydown);
+    return () => {
+      background.forEach((element) => {
+        if (element) element.inert = false;
+      });
+      document.removeEventListener("keydown", keydown);
+      if (previous?.isConnected) previous.focus();
+    };
+  }, [panelOpen, narrow]);
   const [view, setView] = useState<{ source: Source; page?: number }>();
   const [editNotes, setEditNotes] = useState(false);
   const [follow, setFollow] = useState(true);
@@ -131,46 +183,41 @@ export default function Room({
   return (
     <div className="room">
       <section className="main-stage">
-        <div className="room-heading">
-          <div className="room-eyebrow">
-            {s.mode === "research" ? "RESEARCH DIALOGUE" : "RESEARCH INTERVIEW"}
-            <span>{s.demo ? "示例会话 · 非真实模型输出" : statusLabel}</span>
-          </div>
+        <header className="room-heading">
           <h1>{s.title}</h1>
+          <div className="room-status">
+            <span className={running ? "live-dot" : ""} />
+            {s.demo ? "示例会话 · 非真实模型输出" : statusLabel}
+          </div>
+
           <div className="room-meta">
-            <div className="role-pair">
-              <span className="mini-avatar role-0">A</span>
-              {s.roles[0].name}
-              <span className="pair-line" />
-              <span className="mini-avatar role-1">B</span>
-              {s.roles[1].name}
-            </div>
-            <div>
-              <button
-                className="room-agent-button"
-                aria-label="Agent 配置"
-                onClick={onRoles}
-              >
-                <Settings2 size={15} />
-                <span>Agent 配置</span>
+            <p>
+              {s.mode === "research" ? "研究研讨" : "高阶研究面试"}
+              <span>/</span>
+              <span className="role-name-a">{s.roles[0].name}</span>
+              <span>与</span>
+              <span className="role-name-b">{s.roles[1].name}</span>
+            </p>
+            <div className="room-tools">
+              <button aria-label="Agent 配置" onClick={onRoles}>
+                <Settings2 size={16} />
+                角色
               </button>
-              <button
-                className="icon-button"
-                aria-label="导出 Markdown"
-                onClick={() => onExport("md")}
-              >
+              <button aria-label="导出 Markdown" onClick={() => onExport("md")}>
                 <Download size={16} />
+                导出
               </button>
               <button
-                className="icon-button panel-trigger"
+                className="panel-trigger"
                 aria-label="打开私人助教"
                 onClick={() => setPanelOpen(true)}
               >
-                <MessageCircle size={18} />
+                <MessageCircle size={17} />
+                助教
               </button>
             </div>
           </div>
-        </div>
+        </header>
         <div
           className="discussion-scroll"
           ref={scroll}
@@ -244,19 +291,18 @@ export default function Room({
               className={`turn turn-${turn.speaker} ${state.playing?.turnId === turn.id ? "speaking" : ""}`}
               key={turn.id}
             >
-              <div className="turn-avatar">
-                <span className={`avatar role-${turn.speaker}`}>
-                  {turn.speaker === 0 ? "A" : "B"}
-                </span>
-                <span className="turn-track" />
-              </div>
               <div className="turn-body">
                 <header>
+                  <span className="turn-number">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
                   <strong>{s.roles[turn.speaker].name}</strong>
                   <span className="role-tag">
                     {turn.speaker === 0 ? "提出与解释" : "追问与检验"}
                   </span>
-                  <time>第 {Math.floor(i / 2) + 1} 轮</time>
+                  <span className="turn-round">
+                    第 {Math.floor(i / 2) + 1} 轮
+                  </span>
                 </header>
                 {paragraphs(turn.text, true).map((text, n) => (
                   <div
@@ -272,7 +318,7 @@ export default function Room({
                     {turn.status === "complete" && (
                       <button
                         className="paragraph-play"
-                        title="重听本段及后续内容"
+                        aria-label="重听本段及后续内容"
                         onClick={() => void engine.replay(turn.id, n)}
                       >
                         <Volume2 size={13} />
@@ -422,7 +468,7 @@ export default function Room({
           <div className="player-controls">
             <button
               className={`icon-button ${s.voice ? "active" : ""}`}
-              title={s.voice ? "切换文字模式" : "开启双角色听讲"}
+              aria-label={s.voice ? "切换文字模式" : "开启双角色听讲"}
               onClick={() => engine.toggleVoice()}
             >
               <Headphones size={18} />
@@ -442,7 +488,7 @@ export default function Room({
             </select>
             <button
               className="icon-button"
-              title="结束并停止音频"
+              aria-label="结束并停止音频"
               onClick={() => engine.stop()}
             >
               <Square size={15} />
@@ -472,14 +518,15 @@ export default function Room({
           </div>
         </div>
       </section>
-      <aside className={`companion ${panelOpen ? "panel-open" : ""}`}>
+      <aside
+        ref={panel}
+        role={panelOpen && narrow ? "dialog" : undefined}
+        aria-modal={panelOpen && narrow ? true : undefined}
+        aria-label="随行笔记"
+        className={`companion ${panelOpen ? "panel-open" : ""}`}
+      >
         <header className="companion-header">
-          <div>
-            <span className="tutor-star">
-              <Sparkles size={17} />
-            </span>
-            <strong>私人助教</strong>
-          </div>
+          <h2>随行笔记</h2>
           <button
             className="icon-button panel-close"
             aria-label="关闭助教面板"
@@ -487,14 +534,13 @@ export default function Room({
           >
             <X size={18} />
           </button>
-          <span className="quiet-badge">伴你深读</span>
         </header>
         <div className="panel-tabs">
           <button
             className={tab === "tutor" ? "active" : ""}
             onClick={() => setTab("tutor")}
           >
-            答疑
+            私人助教
           </button>
           <button
             className={tab === "sources" ? "active" : ""}
@@ -522,10 +568,7 @@ export default function Room({
             >
               {!s.tutor.length ? (
                 <div className="tutor-welcome">
-                  <div className="tutor-emblem">
-                    <Sparkles size={25} />
-                  </div>
-                  <h3>把没懂的地方，留给我。</h3>
+                  <h3>让问题再深一层。</h3>
                   <p>
                     我会结合这场讨论和你的资料，
                     <br />
@@ -551,7 +594,7 @@ export default function Room({
                   </div>
                   <div className="tutor-note">
                     <span />
-                    这里的提问不会打断主会场
+                    独立答疑 · 可手动交给主会场
                   </div>
                 </div>
               ) : (
@@ -758,7 +801,7 @@ export default function Room({
                 {state.noteBusy ? (
                   <LoaderCircle className="spin" size={14} />
                 ) : (
-                  <Sparkles size={14} />
+                  <NotebookPen size={14} />
                 )}
                 整理笔记
               </button>
