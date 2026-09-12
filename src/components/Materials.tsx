@@ -98,7 +98,7 @@ export default function Materials({
         <div className="form-grid">
           {tab === "text" && (
             <label className="full">
-              资料名称
+              资料名称（选填）
               <input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
@@ -129,7 +129,7 @@ export default function Materials({
         </div>
       )}
       <p className="help">
-        材料保存在本机；研讨时相关内容会发送给你配置的模型服务。PDF
+        资料保存在当前浏览器；研讨时相关内容会发送给你配置的模型服务。PDF
         提取文字不包含对图表的视觉理解，扫描件需另行提供可读正文。链接若受跨域限制，将保留为「尚未读取」。
       </p>
       {busy && (

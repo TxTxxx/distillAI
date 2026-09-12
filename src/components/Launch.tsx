@@ -168,7 +168,7 @@ export default function Launch({ app }: { app: ResearchApp }) {
             disabled={!app.loaded || !app.topic.trim()}
             onClick={app.enter}
           >
-            {app.configurationIssue ? "配置后开始研讨" : "开始研讨"}
+            {app.configurationIssue ? "前往模型设置" : "开始研讨"}
             <ArrowRight size={22} />
           </button>
         </div>
@@ -230,7 +230,7 @@ export default function Launch({ app }: { app: ResearchApp }) {
               <strong>{app.autoStop ? "自主收束" : "固定轮数"}</strong>
               <small>
                 {app.autoStop
-                  ? "讨论充分后总结，保留轮数上限。"
+                  ? "由模型判断何时结束，最多不超过设定轮数。"
                   : "按设定轮数推进讨论。"}
               </small>
             </span>
@@ -284,7 +284,7 @@ export default function Launch({ app }: { app: ResearchApp }) {
             </button>
           </div>
         )}
-        <p className="local-note">资料与记录保存在本机</p>
+        <p className="local-note">资料与记录保存在当前浏览器</p>
       </section>
     </main>
   );

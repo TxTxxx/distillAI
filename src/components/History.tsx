@@ -19,7 +19,7 @@ export default function History({ app }: { app: ResearchApp }) {
         <Search size={18} aria-hidden="true" />
         <input
           aria-label="搜索研讨记录"
-          placeholder="搜索主题、对话、资料或笔记"
+          placeholder="搜索主题、对话、笔记或资料名称"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
@@ -59,7 +59,7 @@ export default function History({ app }: { app: ResearchApp }) {
           <div className="history-row" key={item.id}>
             <button
               onClick={() => app.openSession(item)}
-              aria-label={`继续阅读：${item.title}`}
+              aria-label={`打开研讨：${item.title}`}
             >
               <span>
                 <strong>{item.title}</strong>
@@ -130,7 +130,7 @@ export default function History({ app }: { app: ResearchApp }) {
           onClick={() => app.importRef.current?.click()}
         >
           <Upload size={16} />
-          恢复会话备份
+          导入会话备份
         </button>
         <button
           className="text-button"

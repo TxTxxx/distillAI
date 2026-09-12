@@ -248,7 +248,7 @@ export default function Room({
               <span className="role-name-b">{s.roles[1].name}</span>
             </p>
             <div className="room-tools">
-              <button aria-label="Agent 配置" onClick={onRoles}>
+              <button aria-label="调整研讨角色" onClick={onRoles}>
                 <Settings2 size={16} />
                 角色
               </button>
@@ -258,11 +258,11 @@ export default function Room({
               </button>
               <button
                 className="panel-trigger"
-                aria-label="打开私人助教"
+                aria-label="打开研究助手"
                 onClick={() => setPanelOpen(true)}
               >
                 <MessageCircle size={17} />
-                助教
+                助手
               </button>
             </div>
           </div>
@@ -475,7 +475,7 @@ export default function Room({
                   onClick={() => openPanel("notes")}
                 >
                   <NotebookPen size={15} />
-                  {s.notes ? "回看研究笔记" : "开始整理笔记"}
+                  {s.notes ? "回看学习笔记" : "打开学习笔记"}
                 </button>
               </div>
               <button
@@ -574,7 +574,7 @@ export default function Room({
             </select>
             <button
               className="icon-button"
-              aria-label="结束并停止音频"
+              aria-label="停止生成与播放，可稍后继续"
               onClick={() => engine.stop()}
             >
               <Square size={15} />
@@ -596,7 +596,7 @@ export default function Room({
                   void engine.resume();
                 }}
               >
-                语音失败 · 点击重试
+                语音播放失败 · 重试播放
               </button>
             ) : (
               "AI 合成声音 · 语音按段落定位"
@@ -613,11 +613,11 @@ export default function Room({
       >
         <header className="companion-header">
           <h2>
-            {{ tutor: "私人助教", sources: "研究资料", notes: "随行笔记" }[tab]}
+            {{ tutor: "私人助教", sources: "研究资料", notes: "学习笔记" }[tab]}
           </h2>
           <button
             className="icon-button panel-close"
-            aria-label="关闭助教面板"
+            aria-label="关闭研究助手"
             onClick={() => setPanelOpen(false)}
           >
             <X size={18} />
@@ -852,7 +852,7 @@ export default function Room({
               加入论文或资料
             </button>
             <p className="help">
-              资料的读取状态会一直保留。点击条目查看正文或原页。
+              打开资料可查看正文或原页。「搜索摘要」不代表已读全文。
             </p>
             {!s.sources.length && (
               <div className="empty-state">
@@ -875,8 +875,8 @@ export default function Room({
                   <span className={`evidence ${source.evidence}`}>
                     {
                       {
-                        provided: "用户材料",
-                        extracted: "提取正文",
+                        provided: "已提供正文",
+                        extracted: "已提取正文",
                         search: "搜索摘要",
                         unread: "尚未读取",
                       }[source.evidence]
@@ -908,7 +908,7 @@ export default function Room({
                 ) : (
                   <NotebookPen size={14} />
                 )}
-                整理笔记
+                让助教整理
               </button>
               <button
                 className="icon-button"
@@ -935,7 +935,7 @@ export default function Room({
             <p className="notes-status">
               {state.noteBusy
                 ? "正在根据本场讨论整理，仍可继续手写记录。"
-                : "笔记随会话保存在当前浏览器，可随时编辑或导出。"}
+                : "手写笔记保存在当前浏览器；让助教整理会调用已配置的模型，重新整理现有笔记。"}
             </p>
             {editNotes ? (
               <textarea
@@ -1053,7 +1053,8 @@ export default function Room({
               )}
               <Markdown
                 text={
-                  view.source.text || "暂无可读取正文。请上传 PDF 或粘贴原文。"
+                  view.source.text ||
+                  "尚未读取正文。可以打开原始来源，或上传 PDF、粘贴原文供研讨参考。"
                 }
                 sources={s.sources}
               />

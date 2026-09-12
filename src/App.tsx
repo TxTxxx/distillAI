@@ -100,7 +100,7 @@ export default function App() {
         fallback={
           <div className="loading-overlay" role="status">
             <LoaderCircle className="spin" />
-            正在准备…
+            正在打开面板…
           </div>
         }
       >
@@ -161,13 +161,15 @@ export default function App() {
           title="删除这场研讨？"
           onClose={() => app.setDeleteId(undefined)}
         >
-          <p>本机对话、笔记和相关缓存将被删除。你可以先导出备份。</p>
+          <p>
+            这场研讨的对话、笔记和资料缓存将从当前浏览器删除，无法撤销。如需保留，请先返回记录列表导出备份。
+          </p>
           <div className="modal-actions">
             <button
               className="secondary"
               onClick={() => app.setDeleteId(undefined)}
             >
-              保留
+              保留研讨
             </button>
             <button className="danger" onClick={() => void app.doDelete()}>
               删除研讨

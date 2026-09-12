@@ -50,7 +50,7 @@ export default function AgentEditor({
           不同的视角，决定讨论的深度。编辑每位伙伴的职责与系统提示词。
         </p>
         <div className="agent-editor-layout">
-          <nav className="agent-tabs" aria-label="选择 Agent">
+          <nav className="agent-tabs" aria-label="选择研究角色">
             {[roles[0].name, roles[1].name, "私人助教", "共同规范"].map(
               (name, i) => (
                 <button
@@ -77,7 +77,7 @@ export default function AgentEditor({
                           "解释与构建",
                           "质疑与检验",
                           "拆解与答疑",
-                          "所有 Agent 共用",
+                          "所有研究角色共用",
                         ][i]
                       }
                     </small>
@@ -159,7 +159,7 @@ export default function AgentEditor({
         <div className="editor-footer">
           <p>
             {inSession
-              ? "修改用于本场尚未生成的下一次请求。"
+              ? "修改从下一次模型请求起生效，已生成的内容保持不变。"
               : "自动保存为此场景的新研讨默认配置。"}
             <br />
             模型、资料、主会场历史会在运行时加入上下文。

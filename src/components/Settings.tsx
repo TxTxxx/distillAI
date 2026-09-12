@@ -75,7 +75,9 @@ export default function Settings({
       });
       setResult(
         search
-          ? `联网可用，实际返回 ${r.citations.length} 个来源。`
+          ? r.citations.length > 0
+            ? `请求成功，返回 ${r.citations.length} 个来源。请核对来源内容。`
+            : "请求已完成，但未返回来源，尚不能确认联网搜索可用。"
           : "模型连接成功。",
       );
     } catch (e) {
@@ -143,7 +145,7 @@ export default function Settings({
             <div className="model-sharing">
               <p>
                 {value.assignments.every((a) => a === "shared")
-                  ? "三位伙伴共用此模型。填写一次即可开始。"
+                  ? "两位研讨角色与私人助教共用此模型。填写后可测试连接。"
                   : "当前已分别分配模型，可在下方查看和调整。"}
               </p>
               <button
@@ -204,7 +206,7 @@ export default function Settings({
                 />
               </label>
               <label className="full">
-                Base URL
+                接口地址（Base URL）
                 <input
                   value={config.baseUrl}
                   onChange={(e) => edit({ baseUrl: e.target.value })}
@@ -214,7 +216,7 @@ export default function Settings({
                 />
               </label>
               <label className="full">
-                API Key
+                API 密钥（API Key）
                 <input
                   type="password"
                   value={config.key}
@@ -236,7 +238,7 @@ export default function Settings({
                 ) : (
                   <Check size={15} />
                 )}
-                检测模型
+                测试模型连接
               </button>
               <button
                 className="secondary"
@@ -248,11 +250,11 @@ export default function Settings({
                 ) : (
                   <Globe size={15} />
                 )}
-                检测联网
+                测试联网搜索
               </button>
             </div>
             <p className="help">
-              检测会发起真实 API
+              测试会发起真实 API
               请求并产生相应用量。兼容聊天接口不假定支持联网工具。浏览器直连需要服务允许跨域访问。
             </p>
             {separate && (
@@ -297,7 +299,7 @@ export default function Settings({
                       <small>
                         {value.profiles[a].key.trim() &&
                         value.profiles[a].model.trim()
-                          ? "信息已填写，连接以检测结果为准"
+                          ? "信息已填写，连接以测试结果为准"
                           : "尚未填写完整模型与密钥"}
                       </small>
                     </label>
@@ -353,7 +355,7 @@ export default function Settings({
                 />
               </label>
               <label className="full">
-                语音 Base URL
+                语音接口地址（Base URL）
                 <input
                   value={value.voice.baseUrl}
                   onChange={(e) =>
@@ -365,7 +367,7 @@ export default function Settings({
                 />
               </label>
               <label className="full">
-                语音 API Key
+                语音 API 密钥
                 <input
                   type="password"
                   value={value.voice.key}
@@ -438,9 +440,9 @@ export default function Settings({
         </div>
       )}
       <div className="modal-actions">
-        <span className="help">配置即时保存，密钥除外</span>
+        <span className="help">配置自动保存在当前浏览器，密钥除外</span>
         <button className="primary" onClick={onClose}>
-          完成设置，返回研讨
+          完成设置
         </button>
       </div>
     </Modal>
