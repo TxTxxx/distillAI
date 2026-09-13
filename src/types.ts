@@ -105,6 +105,7 @@ export interface ModelRequest {
   system: string;
   messages: ChatMessage[];
   search?: boolean;
+  searchQuery?: string;
   maxTokens?: number;
   signal?: AbortSignal;
   onDelta?: (text: string) => void;

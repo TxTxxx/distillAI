@@ -213,6 +213,7 @@ export class ResearchEngine {
         },
       ],
       search: true,
+      searchQuery: s.title,
       maxTokens: 3800,
       signal,
     });
@@ -595,6 +596,7 @@ export class ResearchEngine {
           { role: "user", content: question },
         ],
         search: s.search,
+        searchQuery: `${s.title} ${question} ${quote ?? ""}`,
         signal: controller.signal,
         onDelta: (delta) => {
           if (this.state.session?.id === id && !controller.signal.aborted)

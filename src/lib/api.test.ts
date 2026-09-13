@@ -233,12 +233,12 @@ describe("BigModel native search through compatible chat", () => {
       expect(supportsSearch({ ...glm, baseUrl })).toBe(false);
     }
   });
-  it("sends native search options and collects sources arriving after the final text", async () => {
-    const fetch = vi.fn().mockResolvedValue(
-      response([
-        { choices: [{ delta: { content: "结果" }, finish_reason: "stop" }] },
-        {
-          web_search: [
+  it("fetches sources before asking GLM and retains them without chat annotations", async () => {
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(
+        Response.json({
+          search_result: [
             {
               link: "https://example.org/paper",
               title: "论文",
@@ -247,46 +247,88 @@ describe("BigModel native search through compatible chat", () => {
             { link: "https://example.org/paper" },
             { link: "javascript:alert(1)" },
           ],
-          usage: { prompt_tokens: 12, completion_tokens: 3 },
-        },
-      ]),
-    );
+        }),
+      )
+      .mockResolvedValueOnce(
+        response([
+          {
+            choices: [{ delta: { content: "结果" }, finish_reason: "stop" }],
+            usage: { prompt_tokens: 12, completion_tokens: 3 },
+          },
+        ]),
+      );
     vi.stubGlobal("fetch", fetch);
     const result = await generate(glm, {
-      system: "",
-      messages: [],
+      system: "test",
+      messages: [{ role: "user", content: "最近的论文" }],
       search: true,
+      searchQuery: "WAM 最新论文",
     });
-    expect(fetch.mock.calls[0][0]).toBe(glm.baseUrl + "/chat/completions");
-    const body = JSON.parse(fetch.mock.calls[0][1].body);
-    expect(body.tools[0].web_search).toEqual({
-      enable: true,
+    expect(fetch.mock.calls[0][0]).toBe(glm.baseUrl + "/web_search");
+    expect(JSON.parse(fetch.mock.calls[0][1].body)).toMatchObject({
+      search_query: "WAM 最新论文",
+      search_intent: false,
       search_engine: "search_std",
-      search_result: true,
-      require_search: true,
     });
-    expect(body.stream_options).toBeUndefined();
+    expect(fetch.mock.calls[1][0]).toBe(glm.baseUrl + "/chat/completions");
+    const body = JSON.parse(fetch.mock.calls[1][1].body);
+    expect(body.tools).toBeUndefined();
+    expect(body.messages[0].content).toContain("https://example.org/paper");
+    expect(body.messages[0].content).toContain("不代表已读全文");
     expect(result.searched).toBe(true);
     expect(result.citations).toEqual([
       { url: "https://example.org/paper", title: "论文", excerpt: "摘要" },
     ]);
     expect(result.usage).toEqual({ input: 12, output: 3 });
   });
-  it("does not claim search succeeded without returned sources", async () => {
+  it("stops before generation if the search returns no sources", async () => {
+    const fetch = vi
+      .fn()
+      .mockResolvedValue(Response.json({ search_result: [] }));
+    vi.stubGlobal("fetch", fetch);
+    await expect(
+      generate(glm, {
+        system: "",
+        messages: [],
+        search: true,
+        searchQuery: "WAM",
+      }),
+    ).rejects.toThrow("尚未调用模型");
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+  it("identifies search permission errors without exposing response bodies", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue(
-        response([
-          {
-            choices: [{ delta: { content: "结果" }, finish_reason: "stop" }],
-            web_search: [],
-          },
-        ]),
-      ),
+      vi.fn().mockResolvedValue(new Response("secret", { status: 403 })),
     );
     await expect(
-      generate(glm, { system: "", messages: [], search: true }),
-    ).rejects.toThrow("可核对");
+      generate(glm, {
+        system: "",
+        messages: [],
+        search: true,
+        searchQuery: "WAM",
+      }),
+    ).rejects.toThrow("智谱独立搜索失败");
+  });
+  it("does not start generation when cancelled after search", async () => {
+    const controller = new AbortController();
+    const fetch = vi.fn().mockImplementation(async () => {
+      controller.abort();
+      return Response.json({
+        search_result: [{ link: "https://example.org", title: "论文" }],
+      });
+    });
+    vi.stubGlobal("fetch", fetch);
+    await expect(
+      generate(glm, {
+        system: "",
+        messages: [],
+        search: true,
+        searchQuery: "WAM",
+        signal: controller.signal,
+      }),
+    ).rejects.toThrow();
+    expect(fetch).toHaveBeenCalledTimes(1);
   });
   it("does not enable search in text-only requests", async () => {
     const fetch = vi
@@ -334,20 +376,18 @@ describe("GLM reasoning budget", () => {
   it("distinguishes a thinking-only truncation from a tool finish", async () => {
     vi.stubGlobal(
       "fetch",
-      vi
-        .fn()
-        .mockResolvedValue(
-          response([
-            {
-              choices: [
-                {
-                  delta: { reasoning_content: "internal" },
-                  finish_reason: "length",
-                },
-              ],
-            },
-          ]),
-        ),
+      vi.fn().mockResolvedValue(
+        response([
+          {
+            choices: [
+              {
+                delta: { reasoning_content: "internal" },
+                finish_reason: "length",
+              },
+            ],
+          },
+        ]),
+      ),
     );
     await expect(generate(glm, { system: "", messages: [] })).rejects.toThrow(
       "输出正文前",
