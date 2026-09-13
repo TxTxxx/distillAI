@@ -729,6 +729,22 @@ export default function Room({
                       citations={m.citations}
                       onSource={showSource}
                     />
+                    {m.citations.length > 0 && (
+                      <div className="citation-list">
+                        {m.citations.map((c) => (
+                          <a
+                            key={c.url}
+                            href={safeUrl(c.url)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <Globe size={12} />
+                            {c.title}
+                            <ExternalLink size={11} />
+                          </a>
+                        ))}
+                      </div>
+                    )}
                     {m.status === "streaming" && (
                       <LoaderCircle className="spin" size={14} />
                     )}{" "}

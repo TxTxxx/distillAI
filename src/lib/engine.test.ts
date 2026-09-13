@@ -251,3 +251,48 @@ describe("autonomous conclusion and editable prompts", () => {
     e.stop();
   });
 });
+
+describe("tutor web search", () => {
+  it.each([true, false])(
+    "inherits session search=%s and retains citations",
+    async (search) => {
+      const citations = search
+        ? [{ url: "https://example.org/paper", title: "Paper" }]
+        : [];
+      const spy = vi
+        .spyOn(api, "generate")
+        .mockResolvedValue({ ...result, citations, searched: search });
+      const e = engine();
+      e.update((s) => {
+        s.search = search;
+      });
+      await e.ask("查找相关论文");
+      expect(spy.mock.calls[0][1].search).toBe(search);
+      expect(e.state.session?.tutor[1].citations).toEqual(citations);
+      expect(e.state.session?.tutor[1].status).toBe("complete");
+      e.stop();
+      await e.flush();
+    },
+  );
+  it("discards late tutor search results after switching sessions", async () => {
+    let finish!: (r: typeof result) => void;
+    vi.spyOn(api, "generate").mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const e = engine();
+    e.update((s) => {
+      s.search = true;
+    });
+    const pending = e.ask("查找论文");
+    e.create("另一场", "research");
+    finish(result);
+    await pending;
+    expect(e.state.session?.tutor).toEqual([]);
+    expect(e.state.tutorBusy).toBe(false);
+    e.stop();
+    await e.flush();
+  });
+});

@@ -576,6 +576,9 @@ export class ResearchEngine {
           (s.sharedPrompt ?? sharedPrompt) +
           "\n" +
           (s.tutorPrompt ?? tutorPrompt) +
+          (s.search
+            ? "\n本次答疑已启用联网。使用搜索工具核对与问题相关的资料，区分搜索摘要、已读正文和自己的推断，并引用实际返回的来源。\n"
+            : "\n本次答疑未启用联网，仅依据已有资料回答，不要声称已搜索。\n") +
           "\n本场资料：\n" +
           sourceContext(s, question + " " + (quote ?? "")),
         messages: [
@@ -591,6 +594,7 @@ export class ResearchEngine {
           ...history.map((m) => ({ role: m.role, content: m.text })),
           { role: "user", content: question },
         ],
+        search: s.search,
         signal: controller.signal,
         onDelta: (delta) => {
           if (this.state.session?.id === id && !controller.signal.aborted)
