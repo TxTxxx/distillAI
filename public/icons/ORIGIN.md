@@ -1,5 +1,7 @@
 # 观研主屏幕图标
 
-2026-09-13，为观研制作的 AI 生成字标，使用内置 imagegen。原始文件保留于 guanyan-icon.png；apple-touch-icon.png（180×180）及 favicon-32.png（32×32）通过 macOS sips 等比例缩放。背景不透明，外轮廓由系统裁切。
+2026-09-14，按用户要求替换文字图标。使用内置 imagegen 生成不含文字的抽象图标：钴蓝满版底色，两片瓷白与冰蓝弧形带交叠为观察之眼，中间留出菱形负空间，轻微陶瓷立体感。没有文字、字母或数字。图标背景不透明，外圆角由系统裁切。
 
-设计提示：单枚 iPhone 主屏幕图标，冷白 #fbfcfe 满版背景，居中超粗墨黑 #11151b「观」字，占画布约 65%，右下钴蓝 #1847f7 小方块点睛；现代中文几何字标、简洁编辑设计。保持文字准确、小尺寸清晰、足够边距；无其他文字、手机模型、外框、预制圆角、阴影或装饰图形。
+原始生成文件保存在 guanyan-icon.png。apple-touch-icon.png（180×180）及 favicon-32.png（32×32）通过 macOS sips 等比例缩放。网页引用增加 v=2 版本标记。
+
+生成提示：premium iPhone home screen icon for research and dialogue; no letters, Chinese characters, text or numbers; full bleed cobalt background; two broad interlocking curved ribbons forming an open eye/lens silhouette with diamond negative space; upper porcelain white, lower ice blue; simple bold silhouette and subtle ceramic depth; ample margins; no border, pre-rounded corners, particles, AI stars, brain, book or magnifier; finished square icon only.
