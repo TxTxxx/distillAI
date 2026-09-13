@@ -234,25 +234,23 @@ describe("BigModel native search through compatible chat", () => {
     }
   });
   it("sends native search options and collects sources arriving after the final text", async () => {
-    const fetch = vi
-      .fn()
-      .mockResolvedValue(
-        response([
-          { choices: [{ delta: { content: "结果" }, finish_reason: "stop" }] },
-          {
-            web_search: [
-              {
-                link: "https://example.org/paper",
-                title: "论文",
-                content: "摘要",
-              },
-              { link: "https://example.org/paper" },
-              { link: "javascript:alert(1)" },
-            ],
-            usage: { prompt_tokens: 12, completion_tokens: 3 },
-          },
-        ]),
-      );
+    const fetch = vi.fn().mockResolvedValue(
+      response([
+        { choices: [{ delta: { content: "结果" }, finish_reason: "stop" }] },
+        {
+          web_search: [
+            {
+              link: "https://example.org/paper",
+              title: "论文",
+              content: "摘要",
+            },
+            { link: "https://example.org/paper" },
+            { link: "javascript:alert(1)" },
+          ],
+          usage: { prompt_tokens: 12, completion_tokens: 3 },
+        },
+      ]),
+    );
     vi.stubGlobal("fetch", fetch);
     const result = await generate(glm, {
       system: "",
@@ -277,16 +275,14 @@ describe("BigModel native search through compatible chat", () => {
   it("does not claim search succeeded without returned sources", async () => {
     vi.stubGlobal(
       "fetch",
-      vi
-        .fn()
-        .mockResolvedValue(
-          response([
-            {
-              choices: [{ delta: { content: "结果" }, finish_reason: "stop" }],
-              web_search: [],
-            },
-          ]),
-        ),
+      vi.fn().mockResolvedValue(
+        response([
+          {
+            choices: [{ delta: { content: "结果" }, finish_reason: "stop" }],
+            web_search: [],
+          },
+        ]),
+      ),
     );
     await expect(
       generate(glm, { system: "", messages: [], search: true }),
@@ -314,5 +310,47 @@ describe("BigModel native search through compatible chat", () => {
       ),
     ).rejects.toThrow("MCP");
     expect(fetch).not.toHaveBeenCalled();
+  });
+});
+
+describe("GLM reasoning budget", () => {
+  it("reserves thinking capacity even for short internal tasks", async () => {
+    const fetch = vi
+      .fn()
+      .mockResolvedValue(
+        response([
+          { choices: [{ delta: { content: "完成" }, finish_reason: "stop" }] },
+        ]),
+      );
+    vi.stubGlobal("fetch", fetch);
+    await generate(
+      { ...glm, model: "glm-5.4" },
+      { system: "", messages: [], maxTokens: 100 },
+    );
+    const body = JSON.parse(fetch.mock.calls[0][1].body);
+    expect(body.max_tokens).toBe(16384);
+    expect(body.reasoning_effort).toBe("high");
+  });
+  it("distinguishes a thinking-only truncation from a tool finish", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValue(
+          response([
+            {
+              choices: [
+                {
+                  delta: { reasoning_content: "internal" },
+                  finish_reason: "length",
+                },
+              ],
+            },
+          ]),
+        ),
+    );
+    await expect(generate(glm, { system: "", messages: [] })).rejects.toThrow(
+      "输出正文前",
+    );
   });
 });

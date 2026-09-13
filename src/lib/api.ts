@@ -127,6 +127,11 @@ export async function generate(
   let url: string;
   let body: Record<string, unknown>;
   const max = request.maxTokens ?? 2600;
+  const glmVersion = config.model.match(/^glm-(\d+)(?:\.(\d+))?(?:-|$)/i);
+  const glmMajor = Number(glmVersion?.[1] ?? 0);
+  const glmMinor = Number(glmVersion?.[2] ?? 0);
+  const glmThinking =
+    isBigModel(config) && (glmMajor >= 5 || (glmMajor === 4 && glmMinor >= 5));
   switch (config.provider) {
     case "openai":
       url = endpoint(config.baseUrl, "/responses");
@@ -197,7 +202,11 @@ export async function generate(
           ...request.messages,
         ],
         stream: true,
-        max_tokens: max,
+        // GLM's output allowance must also accommodate its thinking tokens.
+        max_tokens: glmThinking ? Math.max(max, 16384) : max,
+        ...(glmThinking && (glmMajor > 5 || (glmMajor === 5 && glmMinor >= 2))
+          ? { reasoning_effort: "high" }
+          : {}),
         ...(isBigModel(config)
           ? {}
           : { stream_options: { include_usage: true } }),
@@ -352,8 +361,20 @@ export async function generate(
       }
       delta(c?.delta?.content);
       if (c?.finish_reason) {
+        if (c.finish_reason === "length")
+          throw new Error(
+            result.text.trim()
+              ? "本次输出额度已用尽，回答尚未完成。已保留收到的正文，请重试。"
+              : "模型在输出正文前耗尽了本次额度，可能消耗在思考阶段。请重试或改用推理开销较小的模型。",
+          );
         if (c.finish_reason !== "stop")
-          throw new Error("回答达到模型上限或被中断，请缩短任务后重试。");
+          throw new Error(
+            "模型未正常结束回答（结束类型：" +
+              String(c.finish_reason)
+                .replace(/[^a-zA-Z0-9_-]/g, "")
+                .slice(0, 40) +
+              "），请核对模型的工具支持情况后重试。",
+          );
         finished = true;
       }
       if (event.usage)
