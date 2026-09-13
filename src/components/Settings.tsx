@@ -7,7 +7,7 @@ import type {
   Role,
 } from "../types";
 import { providerBases } from "../types";
-import { generate, errorMessage } from "../lib/api";
+import { generate, errorMessage, supportsSearch } from "../lib/api";
 import { AudioQueue } from "../lib/audio";
 import { storage } from "../lib/storage";
 import Modal from "./Modal";
@@ -242,7 +242,7 @@ export default function Settings({
               </button>
               <button
                 className="secondary"
-                disabled={!!busy || config.provider === "compatible"}
+                disabled={!!busy || !supportsSearch(config)}
                 onClick={() => void test(true)}
               >
                 {busy === "search" ? (

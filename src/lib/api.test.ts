@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { generate, sse, safeUrl, endpoint } from "./api";
+import { generate, sse, safeUrl, endpoint, supportsSearch } from "./api";
 import type { ModelConfig } from "../types";
 const config: ModelConfig = {
   provider: "openai",
@@ -211,5 +211,108 @@ describe("stream and provider contracts", () => {
     expect(endpoint("http://localhost:1234", "/v1")).toBe(
       "http://localhost:1234/v1",
     );
+  });
+});
+
+const glm: ModelConfig = {
+  ...config,
+  provider: "compatible",
+  baseUrl: "https://open.bigmodel.cn/api/paas/v4",
+  model: "glm-4-air",
+};
+describe("BigModel native search through compatible chat", () => {
+  it("recognizes only the ordinary official endpoint", () => {
+    expect(supportsSearch(glm)).toBe(true);
+    expect(supportsSearch({ ...glm, baseUrl: glm.baseUrl + "/" })).toBe(true);
+    for (const baseUrl of [
+      "https://open.bigmodel.cn/api/coding/paas/v4",
+      "https://open.bigmodel.cn.evil.test/api/paas/v4",
+      "https://proxy.test/v1",
+      "invalid",
+    ]) {
+      expect(supportsSearch({ ...glm, baseUrl })).toBe(false);
+    }
+  });
+  it("sends native search options and collects sources arriving after the final text", async () => {
+    const fetch = vi
+      .fn()
+      .mockResolvedValue(
+        response([
+          { choices: [{ delta: { content: "结果" }, finish_reason: "stop" }] },
+          {
+            web_search: [
+              {
+                link: "https://example.org/paper",
+                title: "论文",
+                content: "摘要",
+              },
+              { link: "https://example.org/paper" },
+              { link: "javascript:alert(1)" },
+            ],
+            usage: { prompt_tokens: 12, completion_tokens: 3 },
+          },
+        ]),
+      );
+    vi.stubGlobal("fetch", fetch);
+    const result = await generate(glm, {
+      system: "",
+      messages: [],
+      search: true,
+    });
+    expect(fetch.mock.calls[0][0]).toBe(glm.baseUrl + "/chat/completions");
+    const body = JSON.parse(fetch.mock.calls[0][1].body);
+    expect(body.tools[0].web_search).toEqual({
+      enable: true,
+      search_engine: "search_std",
+      search_result: true,
+      require_search: true,
+    });
+    expect(body.stream_options).toBeUndefined();
+    expect(result.searched).toBe(true);
+    expect(result.citations).toEqual([
+      { url: "https://example.org/paper", title: "论文", excerpt: "摘要" },
+    ]);
+    expect(result.usage).toEqual({ input: 12, output: 3 });
+  });
+  it("does not claim search succeeded without returned sources", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValue(
+          response([
+            {
+              choices: [{ delta: { content: "结果" }, finish_reason: "stop" }],
+              web_search: [],
+            },
+          ]),
+        ),
+    );
+    await expect(
+      generate(glm, { system: "", messages: [], search: true }),
+    ).rejects.toThrow("可核对");
+  });
+  it("does not enable search in text-only requests", async () => {
+    const fetch = vi
+      .fn()
+      .mockResolvedValue(
+        response([
+          { choices: [{ delta: { content: "结果" }, finish_reason: "stop" }] },
+        ]),
+      );
+    vi.stubGlobal("fetch", fetch);
+    await generate(glm, { system: "", messages: [] });
+    expect(JSON.parse(fetch.mock.calls[0][1].body).tools).toBeUndefined();
+  });
+  it("rejects unadapted services before making a request", async () => {
+    const fetch = vi.fn();
+    vi.stubGlobal("fetch", fetch);
+    await expect(
+      generate(
+        { ...glm, baseUrl: "https://open.bigmodel.cn/api/coding/paas/v4" },
+        { system: "", messages: [], search: true },
+      ),
+    ).rejects.toThrow("MCP");
+    expect(fetch).not.toHaveBeenCalled();
   });
 });

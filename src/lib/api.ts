@@ -94,14 +94,32 @@ export async function* sse(response: Response): AsyncGenerator<string> {
   }
 }
 
+/** Only the documented ordinary BigModel endpoint declares this search protocol. */
+export function supportsSearch(config: ModelConfig): boolean {
+  return config.provider !== "compatible" || isBigModel(config);
+}
+function isBigModel(config: ModelConfig): boolean {
+  try {
+    const url = new URL(config.baseUrl);
+    return (
+      config.provider === "compatible" &&
+      url.protocol === "https:" &&
+      url.hostname === "open.bigmodel.cn" &&
+      url.pathname.replace(/\/$/, "") === "/api/paas/v4"
+    );
+  } catch {
+    return false;
+  }
+}
+
 export async function generate(
   config: ModelConfig,
   request: ModelRequest,
 ): Promise<ModelResult> {
   checkConfig(config);
-  if (request.search && config.provider === "compatible")
+  if (request.search && !supportsSearch(config))
     throw new Error(
-      "通用聊天接口未声明联网协议，请为检索选择 OpenAI、Claude 或 Gemini 原生接口。",
+      "此兼容服务尚未适配联网协议。智谱普通 API 请使用 https://open.bigmodel.cn/api/paas/v4；Coding Plan 的搜索需要独立 MCP，暂未接入。其他服务可使用已支持的原生搜索接口，或关闭联网并导入资料。",
     );
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -180,7 +198,24 @@ export async function generate(
         ],
         stream: true,
         max_tokens: max,
-        stream_options: { include_usage: true },
+        ...(isBigModel(config)
+          ? {}
+          : { stream_options: { include_usage: true } }),
+        ...(request.search && isBigModel(config)
+          ? {
+              tools: [
+                {
+                  type: "web_search",
+                  web_search: {
+                    enable: true,
+                    search_engine: "search_std",
+                    search_result: true,
+                    require_search: true,
+                  },
+                },
+              ],
+            }
+          : {}),
       };
   }
   const result: ModelResult = {
@@ -305,6 +340,16 @@ export async function generate(
         throw new Error("服务未接受本次请求，请调整材料或问题。");
     } else {
       const c = event.choices?.[0];
+      if (isBigModel(config) && Array.isArray(event.web_search)) {
+        for (const source of event.web_search) {
+          add({
+            url: source?.link,
+            title: source?.title,
+            cited_text: source?.content,
+          });
+        }
+        if (result.citations.length) result.searched = true;
+      }
       delta(c?.delta?.content);
       if (c?.finish_reason) {
         if (c.finish_reason !== "stop")
